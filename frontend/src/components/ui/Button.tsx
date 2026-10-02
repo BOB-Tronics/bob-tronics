@@ -2,6 +2,7 @@ type ButtonProps = {
   label: string;
   variant: "primary" | "secondary" | "danger";
   size: "small" | "medium" | "large";
+  loading?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const baseStyles =
@@ -19,7 +20,7 @@ const sizeStyles = {
   large: "px-6 py-3 text-lg",
 };
 
-function Button({ label, variant, size, className, ...props }: ButtonProps) {
+function Button({ label, variant, size, className,loading, ...props }: ButtonProps) {
   return (
     <button
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
