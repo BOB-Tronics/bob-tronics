@@ -1,9 +1,12 @@
+"use client";
+
+import Button from "@/components/ui/Button";
 function Home() {
   return (
-    <div className='text-xl text-gray-800 font-semibold text-center'>
-      Bob Tronics
-    </div>
-  )
+    <main className="my-auto mx-auto">
+     
+    </main>
+  );
 }
 
-export default Home
+export default Home;
