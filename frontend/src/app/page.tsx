@@ -1,9 +1,5 @@
-function Home() {
-  return (
-    <div className='text-xl text-gray-800 font-semibold text-center'>
-      Bob Tronics
-    </div>
-  )
-}
+import OrdersPage from "../orders/orders";
 
-export default Home
+export default function Page() {
+  return <OrdersPage />;
+}
