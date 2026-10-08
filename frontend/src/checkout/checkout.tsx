@@ -1,16 +1,10 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
-import { CgShoppingCart } from "react-icons/cg";
-import { CiHeart } from "react-icons/ci";
-import {
-  FiCheck,
-  FiChevronDown,
-  FiSearch,
-  FiShoppingBag,
-  FiUser,
-} from "react-icons/fi";
-import logo from "../../asset/logo (1).png";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChangeEvent, FormEvent, useState } from "react";
+import { FiCheck, FiChevronDown } from "react-icons/fi";
+import Navbar from "@/components/Navbar";
 import "./checkout.css";
 
 type FormState = {
@@ -34,6 +28,7 @@ const initialForm: FormState = {
 const steps = ["Customer Details", "Delivery", "Payment", "Confirmation"];
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const [form, setForm] = useState<FormState>(initialForm);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [deliveryLocation, setDeliveryLocation] = useState("Kigali, Rwanda");
@@ -41,13 +36,16 @@ export default function CheckoutPage() {
 
   const subtotal = 900000;
   const deliveryFee = 30000;
-  const total = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
+  const total = subtotal + deliveryFee;
 
   const handleInputChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target;
-    setForm((previous) => ({ ...previous, [name]: value }));
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    } as FormState));
   };
 
   const handleCheckboxChange = () => {
@@ -59,7 +57,11 @@ export default function CheckoutPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    setActiveStep(1);
+    if (activeStep < steps.length - 1) {
+      setActiveStep(activeStep + 1);
+      return;
+    }
+    router.push("/orders");
   };
 
   const saveDeliveryDetails = () => {
@@ -74,47 +76,10 @@ export default function CheckoutPage() {
         <span>Genuine tech. Expert support. Delivered.</span>
       </div>
 
-      <header className="checkout-header">
-        <div className="brand-wrap">
-          <img src={logo    .src} alt="Bob Tronics logo" className="brand-logo" />
-          <div className="brand-text-block">
-            <span className="brand-name">BOB TRONICS</span>
-            <span className="brand-tag">Technology Hub</span>
-          </div>
-        </div>
-
-        <nav className="nav-menu" aria-label="Main navigation">
-          <a href="#">Home</a>
-          <a href="#">Shop</a>
-          <a href="#">Categories</a>
-          <a href="#">IT Services</a>
-          <a href="#">About</a>
-          <a href="#">Contact</a>
-        </nav>
-
-        <div className="header-actions" aria-label="Quick actions">
-          <button type="button" className="icon-button" aria-label="Search">
-            <FiSearch />
-          </button>
-
-          <button type="button" className="icon-button" aria-label="heart">
-            <CiHeart />
-          </button>
-          <button type="button" className="icon-button" aria-label="User account">
-            <FiUser />
-          </button>
-          <button type="button" className="icon-button" aria-label="cart">
-            <CgShoppingCart />
-          </button>
-          <button type="button" className="icon-button cart-button" aria-label="Shopping cart">
-            <FiShoppingBag />
-            <span>Shop Now</span>
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="checkout-shell">
-        <div className="checkout-breadcrumb">Home /Shop /Checkout</div>
+        <div className="checkout-breadcrumb"><Link href="/">Home</Link> / <Link href="/checkout">Shop</Link> / Checkout</div>
         <h1 className="checkout-title">Checkout</h1>
         <p className="checkout-subtitle">A few simple steps to your next upgrade</p>
 
@@ -125,16 +90,18 @@ export default function CheckoutPage() {
                 <button
                   key={step}
                   type="button"
-                  className={`step ${index === activeStep ? "is-active" : ""}`}
+                  className={`step ${index === activeStep ? "is-active" : ""} ${index < activeStep ? "is-complete" : ""}`}
                   onClick={() => setActiveStep(index)}
+                  aria-current={index === activeStep ? "step" : undefined}
+                  disabled={index > activeStep}
                 >
                   {step}
                 </button>
               ))}
             </div>
 
-            <div className="form-section-title">Customer Details</div>
-            <div className="login-link">Already have an account? <a href="#">Login</a></div>
+            <div className="form-section-title">{steps[activeStep]}</div>
+            <div className="login-link">Already have an account? <Link href="/orders">Login</Link></div>
 
             <div className="field-grid">
               <label className="field-wrap">
@@ -145,6 +112,8 @@ export default function CheckoutPage() {
                   value={form.firstName}
                   onChange={handleInputChange}
                   placeholder="First Name"
+                  required
+                  autoComplete="given-name"
                 />
               </label>
 
@@ -156,6 +125,8 @@ export default function CheckoutPage() {
                   value={form.lastName}
                   onChange={handleInputChange}
                   placeholder="Last Name"
+                  required
+                  autoComplete="family-name"
                 />
               </label>
 
@@ -167,6 +138,8 @@ export default function CheckoutPage() {
                   value={form.email}
                   onChange={handleInputChange}
                   placeholder="Email"
+                  required
+                  autoComplete="email"
                 />
               </label>
 
@@ -176,8 +149,11 @@ export default function CheckoutPage() {
                   name="country"
                   value={form.country}
                   onChange={handleInputChange}
+                  required
+                  autoComplete="country-name"
                 >
                   <option value="">Select country</option>
+                  <option value="rwanda">Rwanda</option>
                   <option value="nigeria">Nigeria</option>
                   <option value="ghana">Ghana</option>
                   <option value="kenya">Kenya</option>
@@ -194,6 +170,8 @@ export default function CheckoutPage() {
                   value={form.phone}
                   onChange={handleInputChange}
                   placeholder="Phone Number"
+                  required
+                  autoComplete="tel"
                 />
               </label>
             </div>
@@ -272,7 +250,8 @@ export default function CheckoutPage() {
             <button
               type="button"
               className="edit-button"
-              onClick={() => setIsEditingDelivery(true)}
+              onClick={() => setIsEditingDelivery((previous) => !previous)}
+              aria-expanded={isEditingDelivery}
             >
               {isEditingDelivery ? "Cancel edit" : "Edit delivery details"}
             </button>

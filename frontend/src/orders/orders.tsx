@@ -1,256 +1,133 @@
-"use client";
-
-import { useMemo, useState } from "react";
-import { CgShoppingCart } from "react-icons/cg";
-import { CiHeart } from "react-icons/ci";
-import { FiChevronRight, FiSearch, FiUser } from "react-icons/fi";
-import logo from "../../asset/logo (1).png";
+import Link from "next/link";
+import { FiCheck, FiHelpCircle } from "react-icons/fi";
+import Navbar from "@/components/Navbar";
+import PrintInvoiceButton from "./PrintInvoiceButton";
 import "./orders.css";
 
-type OrderStatus = "Packed" | "In progress" | "Delivered" | "Cancelled";
-
-type OrderRow = {
-  id: string;
-  date: string;
-  product: string;
-  total: string;
-  status: OrderStatus;
-};
-
-const orders: OrderRow[] = [
-  {
-    id: "BT-10482",
-    date: "01 Oct 2026",
-    product: "MacBook Air 13 M3",
-    total: "GHC 14,080",
-    status: "Packed",
-  },
-  {
-    id: "BT-1021",
-    date: "12 Sep 2026",
-    product: "WH-1000XM5 x1",
-    total: "GHC 3,880",
-    status: "Delivered",
-  },
-  {
-    id: "BT-10039",
-    date: "28 Aug 2026",
-    product: "iPhone 15 Pro x1",
-    total: "GHC 12,880",
-    status: "Delivered",
-  },
-  {
-    id: "BT-10870",
-    date: "14 Aug 2026",
-    product: "Dell XPS 13",
-    total: "GHC 9,500",
-    status: "In progress",
-  },
+const accountLinks = [
+  { label: "Overview", href: "/orders" },
+  { label: "Orders", href: "/orders" },
+  { label: "Track Order", href: "/orders" },
+  { label: "Wishlist", href: "/orders" },
+  { label: "Addresses", href: "/checkout" },
+  { label: "Payments", href: "/checkout" },
+  { label: "Profile", href: "/orders" },
+  { label: "Notifications", href: "/orders" },
+  { label: "Support", href: "/checkout" },
+  { label: "Logout", href: "/" },
 ];
 
-const tabs = [
-  { label: "All orders", count: orders.length },
-  { label: "In progress", count: orders.filter((item) => item.status === "In progress").length },
-  { label: "Delivered", count: orders.filter((item) => item.status === "Delivered").length },
-  { label: "Cancelled", count: orders.filter((item) => item.status === "Cancelled").length },
+const trackingSteps = [
+  { title: "Confirmed", time: "01 Oct · 14:32", detail: "Payment received", state: "complete" },
+  { title: "Processing", time: "01 Oct · 15:10", detail: "Order verified by our team", state: "complete" },
+  { title: "Packed · Current status", time: "02 Oct · 09:15", detail: "Your device is safely packed", state: "current" },
+  { title: "Out for Delivery", time: "Expected 03 Oct · 09:00", detail: "Courier assignment pending", state: "upcoming" },
+  { title: "Delivered", time: "Expected 03 Oct", detail: "Not yet delivered", state: "upcoming" },
 ];
 
 export default function OrdersPage() {
-  const [activeTab, setActiveTab] = useState("All orders");
-  const [search, setSearch] = useState("");
-
-  const filteredOrders = useMemo(() => {
-    const currentTab = activeTab.toLowerCase();
-
-    const filteredByTab =
-      currentTab === "all orders"
-        ? orders
-        : orders.filter((item) => item.status.toLowerCase() === currentTab);
-
-    if (!search.trim()) {
-      return filteredByTab;
-    }
-
-    return filteredByTab.filter((item) => {
-      const query = search.toLowerCase();
-      return (
-        item.id.toLowerCase().includes(query) ||
-        item.product.toLowerCase().includes(query) ||
-        item.status.toLowerCase().includes(query)
-      );
-    });
-  }, [activeTab, search]);
-
   return (
     <div className="orders-page">
-      <div className="promo-strip">Genuine tech. Expert support. Delivered.</div>
+      <Navbar />
 
-      <header className="orders-header">
-        <div className="brand-wrap">
-          <img src={logo.src} alt="Bob Tronics logo" className="brand-logo" />
-          <div className="brand-text-block">
-            <span className="brand-name">BOB TRONICS</span>
-            <span className="brand-tag">A Technology Hub</span>
+      <main className="orders-shell">
+        <div className="breadcrumb"><Link href="/">Home</Link> / My account</div>
+        <div className="order-heading">
+          <div>
+            <h1 className="page-title">Order BT-10482</h1>
+            <p className="page-subtitle">Your technology, orders and support in one place.</p>
           </div>
         </div>
 
-        <nav className="nav-menu" aria-label="Main navigation">
-          <a href="#">Home</a>
-          <a href="#">Shop</a>
-          <a href="#">Categories</a>
-          <a href="#">IT Services</a>
-          <a href="#">About</a>
-          <a href="#">Contact</a>
-        </nav>
-
-        <div className="header-actions" aria-label="Quick actions">
-          <button type="button" className="icon-button" aria-label="Search">
-            <FiSearch />
-          </button>
-          <button type="button" className="icon-button" aria-label="User account">
-            <FiUser />
-          </button>
-          <button type="button" className="icon-button" aria-label="Cart">
-            <CgShoppingCart />
-          </button>
-          <button type="button" className="icon-button" aria-label="Wishlist">
-            <CiHeart />
-          </button>
-          <button type="button" className="shop-button" aria-label="Shop now">
-            Shop Now
-          </button>
-        </div>
-      </header>
-
-      <main className="orders-shell">
-        <div className="breadcrumb">Home / My account</div>
-
-        <h1 className="page-title">Orders</h1>
-        <p className="page-subtitle">Your technology, orders and support in one place.</p>
-
         <div className="orders-layout">
-          <aside className="sidebar">
-            <div className="profile-card">
-              <div className="profile-header">
-                <div className="profile-avatar">A</div>
-                <div className="profile-meta">
-                  <h2>Ama Mensah</h2>
-                  <span>ama.mensah@example.com</span>
-                </div>
-              </div>
-
-              <nav className="sidebar-nav" aria-label="Account menu">
-                <button type="button" className="nav-item">
-                  Overview
-                </button>
-                <button type="button" className="nav-item active">
-                  Orders
-                </button>
-                <button type="button" className="nav-item">
-                  Track Order
-                </button>
-                <button type="button" className="nav-item">
-                  Wishlist
-                </button>
-                <button type="button" className="nav-item">
-                  Addresses
-                </button>
-                <button type="button" className="nav-item">
-                  Payments
-                </button>
-                <button type="button" className="nav-item">
-                  Profile
-                </button>
-                <button type="button" className="nav-item">
-                  Notifications
-                </button>
-                <button type="button" className="nav-item">
-                  Support
-                </button>
-                <button type="button" className="nav-item">
-                  Logout
-                </button>
-              </nav>
+          <aside className="account-sidebar">
+            <div className="account-profile">
+              <div className="profile-avatar" aria-hidden="true">A</div>
+              <h2>Ama Mensah</h2>
+              <span>ama.mensah@example.com</span>
             </div>
+            <nav className="account-nav" aria-label="Account menu">
+              {accountLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={link.label === "Orders" ? "is-active" : ""}
+                  aria-current={link.label === "Orders" ? "page" : undefined}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
           </aside>
 
-          <section className="content-panel">
-            <div className="tab-row" aria-label="Order status tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.label}
-                  type="button"
-                  className={`tab-button ${activeTab === tab.label ? "is-active" : ""}`}
-                  onClick={() => setActiveTab(tab.label)}
-                >
-                  {tab.label}
-                  <span className="tab-count">({tab.count})</span>
-                </button>
-              ))}
+          <section className="order-content" id="order-details" aria-label="Order details">
+            <div className="order-status-labels" aria-label="Order status">
+              <span className="order-pill order-pill-packed">Packed</span>
+              <span className="order-pill order-pill-paid">Payment received</span>
             </div>
 
-            <div className="search-box">
-              <label htmlFor="order-search">Search orders</label>
-              <div className="search-input-wrap">
-                <FiSearch className="search-icon" />
-                <input
-                  id="order-search"
-                  type="text"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Enter order number or product"
-                />
-              </div>
+            <section className="detail-card tracking-card">
+              <h2>Order details</h2>
+              <p className="tracking-intro">
+                Placed 01 Oct 2026 · 14:32 <span>·</span> Delivery estimated 03 Oct 2026
+              </p>
+              <ol className="tracking-list">
+                {trackingSteps.map((step) => (
+                  <li className={`tracking-step is-${step.state}`} key={step.title}>
+                    <span className="tracking-marker" aria-hidden="true">
+                      {step.state === "complete" ? <FiCheck /> : null}
+                    </span>
+                    <div className="tracking-copy">
+                      <h3>{step.title}</h3>
+                      <p>{step.time}</p>
+                      <p>{step.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <div className="order-info-grid">
+              <section className="detail-card order-summary-card">
+                <h2>Order summary</h2>
+                <div className="ordered-product">
+                  <div className="laptop-thumbnail" aria-label="MacBook Air product image">
+                    <span className="laptop-screen"><i /></span>
+                    <span className="laptop-base" />
+                  </div>
+                  <div className="ordered-product-copy">
+                    <h3>MacBook Air 13&quot; M3</h3>
+                    <p>Midnight · 8GB / 256GB · Qty 1</p>
+                    <strong>RWF 14,500</strong>
+                  </div>
+                </div>
+                <dl className="price-breakdown">
+                  <div><dt>Subtotal</dt><dd>RWF 14,500</dd></div>
+                  <div><dt>Delivery</dt><dd>RWF 80</dd></div>
+                  <div className="discount-row"><dt>WELCOME500</dt><dd>− RWF 500</dd></div>
+                  <div className="price-total"><dt>Total</dt><dd>RWF 14,080</dd></div>
+                </dl>
+                <p className="tax-note">Taxes included. Payments are encrypted and secure.</p>
+              </section>
+
+              <section className="detail-card delivery-payment-card">
+                <h2>Delivery &amp; Payment</h2>
+                <div className="delivery-details">
+                  <strong>Ama Mensah</strong>
+                  <p>Kigali · Nyarugenge</p>
+                  <p>Standard Delivery · RWF 80</p>
+                  <p>MTN MoMo · +250 24 ••• 0184 · Paid</p>
+                  <span>Payment reference MM-882140</span>
+                </div>
+                <div className="order-actions">
+                  <PrintInvoiceButton />
+                  <Link href="/checkout"><FiHelpCircle /> Get help with this order</Link>
+                </div>
+              </section>
             </div>
-
-            <div className="table-card">
-              <h2>Order history</h2>
-
-              <div className="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Order</th>
-                      <th>Date</th>
-                      <th>Product</th>
-                      <th>Total</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.id}</td>
-                        <td>{item.date}</td>
-                        <td>{item.product}</td>
-                        <td>{item.total}</td>
-                        <td>
-                          <span className={`status-badge status-${item.status.toLowerCase().replace(/\s+/g, "-")}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button type="button" className="view-order-button">
-                            View order <FiChevronRight />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="footer-note">Showing all 3 orders • Download invoices from order details.</div>
           </section>
         </div>
       </main>
-
-      <footer className="site-footer">
-        <span>BOB TRONICS • © 2026 • Demo store</span>
-        <span>Support • Returns • warranty • Privacy • Terms • Secure payments</span>
-      </footer>
     </div>
   );
 }
