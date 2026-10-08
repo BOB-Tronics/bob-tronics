@@ -1,0 +1,226 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { categories } from "@/lib/mock-data";
+import { useCart } from "@/hooks/useCart";
+import Button from "@/components/ui/Button";
+import {
+  ArrowRightIcon,
+  CartIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  HeartIcon,
+  MenuIcon,
+  SearchIcon,
+  UserIcon,
+} from "@/components/ui/Icons";
+
+const navLinks = [
+  { label: "Home", href: "/" },
+  { label: "Shop", href: "/shop" },
+  { label: "IT Services", href: "/it-services" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
+
+export default function Header() {
+  const pathname = usePathname();
+  const { totalQuantity } = useCart();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  function closeMenus() {
+    setMenuOpen(false);
+    setCategoriesOpen(false);
+  }
+
+  function isActive(href: string) {
+    return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  }
+
+  const iconButton =
+    "flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-accent";
+
+  return (
+    <header className="sticky top-0 z-40 bg-white shadow-sm">
+      <div className="bg-navy text-xs text-white/80">
+        <div className="page-container flex h-9 items-center justify-between">
+          <p>Genuine tech. Expert support. Delivered.</p>
+          <p className="hidden sm:block">Kigali delivery from RWF 80 · Demo store</p>
+        </div>
+      </div>
+
+      <div className="page-container flex h-16 items-center justify-between gap-4 lg:h-20">
+        <Link href="/" className="flex items-center gap-2" aria-label="BOB TRONICS home">
+          <Image src="/images/logo.png" alt="" width={48} height={47} className="h-10 w-auto lg:h-12" priority />
+          <span className="leading-tight">
+            <span className="block whitespace-nowrap text-base font-extrabold tracking-tight text-primary sm:text-lg lg:text-2xl">
+              BOB TRONICS
+            </span>
+            <span className="hidden text-xs font-medium text-primary/80 sm:block lg:text-sm">
+              A Technology Hub
+            </span>
+          </span>
+        </Link>
+
+        <nav className="hidden items-center gap-6 lg:flex" aria-label="Main">
+          {navLinks.slice(0, 2).map((link) => (
+            <NavLink key={link.href} {...link} active={isActive(link.href)} />
+          ))}
+          <div
+            className="relative"
+            onMouseEnter={() => setCategoriesOpen(true)}
+            onMouseLeave={() => setCategoriesOpen(false)}
+          >
+            <button
+              className={`flex items-center gap-1 py-2 text-sm font-medium hover:text-primary ${
+                categoriesOpen ? "text-primary" : "text-ink"
+              }`}
+              aria-expanded={categoriesOpen}
+              onClick={() => setCategoriesOpen((open) => !open)}
+            >
+              Categories <ChevronDownIcon size={16} />
+            </button>
+            {categoriesOpen && <CategoriesMenu onNavigate={closeMenus} />}
+          </div>
+          {navLinks.slice(2).map((link) => (
+            <NavLink key={link.href} {...link} active={isActive(link.href)} />
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Link href="/shop" className={`${iconButton} hidden sm:flex`} aria-label="Search products">
+            <SearchIcon />
+          </Link>
+          <Link href="/account/wishlist" className={`${iconButton} hidden sm:flex`} aria-label="Wishlist">
+            <HeartIcon />
+          </Link>
+          <Link href="/cart" className={`${iconButton} relative`} aria-label={`Cart, ${totalQuantity} items`}>
+            <CartIcon />
+            {totalQuantity > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-white">
+                {totalQuantity}
+              </span>
+            )}
+          </Link>
+          <Link href="/account" className={`${iconButton} hidden sm:flex`} aria-label="My account">
+            <UserIcon />
+          </Link>
+          <div className="ml-2 hidden md:block">
+            <Button href="/shop">Shop Now</Button>
+          </div>
+          <button
+            className={`${iconButton} lg:hidden`}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <CloseIcon size={24} /> : <MenuIcon size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {menuOpen && <MobileMenu isActive={isActive} onNavigate={closeMenus} />}
+    </header>
+  );
+}
+
+function NavLink({ label, href, active }: { label: string; href: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`py-2 text-sm font-medium hover:text-primary ${
+        active ? "font-semibold text-primary" : "text-ink"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div className="absolute left-1/2 top-full w-[760px] -translate-x-1/2 pt-3" onClick={onNavigate}>
+      <div className="rounded-2xl border border-line bg-white p-6 shadow-card">
+        <div className="grid grid-cols-4 gap-6">
+          {categories.map((category) => (
+            <div key={category.slug}>
+              <Link
+                href={`/shop?category=${category.slug}`}
+                className="text-base font-bold text-primary hover:underline"
+              >
+                {category.name}
+              </Link>
+              <ul className="mt-3 space-y-2">
+                {category.subcategories.map((sub) => (
+                  <li key={sub}>
+                    <Link
+                      href={`/shop?category=${category.slug}`}
+                      className="text-sm text-muted hover:text-ink"
+                    >
+                      {sub}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <Link
+          href="/shop/macbook-air-13-m3"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
+        >
+          New: MacBook Air M3 · Explore now <ArrowRightIcon size={16} />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => boolean; onNavigate: () => void }) {
+  return (
+    <div className="border-t border-line bg-white lg:hidden" onClick={onNavigate}>
+      <nav className="page-container flex flex-col py-3" aria-label="Mobile">
+        {navLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`rounded-lg px-3 py-3 text-base font-medium ${
+              isActive(link.href) ? "bg-accent text-primary" : "text-ink"
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
+
+        <p className="mt-3 px-3 text-xs font-bold uppercase tracking-wide text-muted">Categories</p>
+        <div className="grid grid-cols-2 gap-1 py-2">
+          {categories.map((category) => (
+            <Link
+              key={category.slug}
+              href={`/shop?category=${category.slug}`}
+              className="rounded-lg px-3 py-3 text-base font-medium text-ink"
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-4 sm:hidden">
+          <Button href="/account" variant="secondary">
+            <UserIcon size={18} /> My account
+          </Button>
+          <Button href="/account/wishlist" variant="secondary">
+            <HeartIcon size={18} /> Wishlist
+          </Button>
+          <Button href="/shop" className="col-span-2">
+            Shop Now
+          </Button>
+        </div>
+      </nav>
+    </div>
+  );
+}
