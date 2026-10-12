@@ -1,3 +1,53 @@
 @import "tailwindcss";
 
+/* Design tokens taken from the BOB TRONICS Figma file */
+@theme {
+  --color-navy: #090d28;
+  --color-hero: #03194a;
+  --color-primary: #060a8a;
+  --color-primary-dark: #04066b;
+  --color-surface: #f5f7fb;
+  --color-accent: #efeefe;
+  --color-accent-strong: #e2e1fb;
+  --color-success: #0c7853;
+  --color-success-bg: #e9f6ef;
+  --color-warning: #8a5a0b;
+  --color-warning-bg: #fdf3e2;
+  --color-star: #b8860b;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e4e8f0;
 
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* Shared page container used by every section */
+@utility page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 640px) {
+    padding-inline: 1.5rem;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Hide scrollbars on horizontal chip rows while keeping them scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

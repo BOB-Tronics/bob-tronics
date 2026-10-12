@@ -1,34 +1,65 @@
-type ButtonProps = {
-  label: string;
-  variant: "primary" | "secondary" | "danger";
-  size: "small" | "medium" | "large";
+import Link from "next/link";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+
+type Variant = "primary" | "secondary" | "dark" | "white" | "ghost";
+type Size = "sm" | "md" | "lg";
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
+  href?: string;
+  fullWidth?: boolean;
   loading?: boolean;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+  children: ReactNode;
+}
 
-const baseStyles =
-  "inline-flex items-center justify-center rounded-md font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50";
-
-const variantStyles = {
-  primary: "bg-blue-500 text-white hover:bg-blue-600",
-  secondary: "bg-gray-500 text-white hover:bg-gray-600",
-  danger: "bg-red-500 text-white hover:bg-red-600",
+const variantClasses: Record<Variant, string> = {
+  primary: "bg-primary text-white hover:bg-primary-dark shadow-sm",
+  secondary: "bg-white text-primary border border-line hover:border-primary hover:bg-accent",
+  dark: "bg-navy text-white hover:bg-black",
+  white: "bg-white text-primary hover:bg-accent shadow-sm",
+  ghost: "bg-transparent text-primary hover:bg-accent",
 };
 
-const sizeStyles = {
-  small: "px-3 py-1.5 text-sm",
-  medium: "px-4 py-2 text-base",
-  large: "px-6 py-3 text-lg",
+const sizeClasses: Record<Size, string> = {
+  sm: "h-9 px-3 text-sm",
+  md: "h-11 px-5 text-sm",
+  lg: "h-12 px-6 text-base",
 };
 
-function Button({ label, variant, size, className,loading, ...props }: ButtonProps) {
+export default function Button({
+  variant = "primary",
+  size = "md",
+  href,
+  fullWidth,
+  loading,
+  className = "",
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const classes = [
+    "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+    "disabled:cursor-not-allowed disabled:opacity-60",
+    variantClasses[variant],
+    sizeClasses[size],
+    fullWidth ? "w-full" : "",
+    className,
+  ].join(" ");
+
+  // Links that look like buttons share the same styles.
+  if (href) {
+    return (
+      <Link href={href} className={classes}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <button
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
-      {...props}
-    >
-      {label}
+    <button className={classes} disabled={disabled || loading} {...props}>
+      {loading ? "Please wait..." : children}
     </button>
   );
 }
-
-export default Button;

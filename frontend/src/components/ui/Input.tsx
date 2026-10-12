@@ -1,35 +1,58 @@
-import React from "react";
+import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+const fieldClasses =
+  "h-12 w-full rounded-lg border border-line bg-white px-4 text-base text-ink placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  error?: boolean;
-};
+  error?: string;
+  hint?: string;
+}
 
-export default function Input({
-  error,
-  label,
-  className,
-  ...props
-}: InputProps) {
+export default function Input({ label, error, hint, id, className = "", ...props }: InputProps) {
+  const inputId = id ?? props.name;
   return (
-    <div className="w-full">
+    <div className={className}>
       {label && (
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="mb-2 block text-sm font-semibold text-ink">
           {label}
+          {props.required && " *"}
         </label>
       )}
-
       <input
+        id={inputId}
+        className={`${fieldClasses} ${error ? "border-red-400" : ""}`}
+        aria-invalid={!!error}
         {...props}
-        className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition
-          ${
-            error
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500/20"
-          }
-          disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-60
-          ${className ?? ""}`}
       />
+      {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+      {hint && !error && <p className="mt-1.5 text-sm text-muted">{hint}</p>}
+    </div>
+  );
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: { value: string; label: string }[];
+}
+
+export function Select({ label, options, id, className = "", ...props }: SelectProps) {
+  const selectId = id ?? props.name;
+  return (
+    <div className={className}>
+      {label && (
+        <label htmlFor={selectId} className="mb-2 block text-sm font-semibold text-ink">
+          {label}
+          {props.required && " *"}
+        </label>
+      )}
+      <select id={selectId} className={fieldClasses} {...props}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
