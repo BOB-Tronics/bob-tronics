@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import CheckoutPage from "../../checkout/checkout";
-
-export default function CheckoutRoute() {
-  return <CheckoutPage />;
-}
-=======
 import CheckoutWizard from "@/components/checkout/CheckoutWizard";
 import PageHeader from "@/components/ui/PageHeader";
 import { getAddresses, getCurrentUser } from "@/services/account";
@@ -27,4 +20,3 @@ export default async function CheckoutPage() {
     </div>
   );
 }
->>>>>>> f3612fbcdda1996521c9fec562a1e23eaf111738

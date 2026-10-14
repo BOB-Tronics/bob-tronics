@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import OrdersPage from "../orders/orders";
-
-export default function Page() {
-  return <OrdersPage />;
-}
-=======
 import CategoryCards from "@/components/home/CategoryCards";
 import Hero from "@/components/home/Hero";
 import Newsletter from "@/components/home/Newsletter";
@@ -93,4 +86,3 @@ export default async function HomePage() {
     </>
   );
 }
->>>>>>> f3612fbcdda1996521c9fec562a1e23eaf111738

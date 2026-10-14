@@ -39,6 +39,8 @@ const compactLinks = ["Support", "Returns & warranty", "Privacy", "Terms", "Secu
 export default function Footer() {
   const pathname = usePathname();
 
+  if (pathname === "/account") return null;
+
   if (pathname !== "/") {
     return (
       <footer className="mt-12 bg-navy text-sm text-white/80">
