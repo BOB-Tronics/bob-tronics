@@ -1,6 +1,5 @@
 import { StarIcon } from "./Icons";
 
-// Shows either "★ 4.9 (128 reviews)" or five stars depending on `variant`.
 export default function Rating({
   value,
   count,

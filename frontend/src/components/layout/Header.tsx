@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -49,7 +49,7 @@ export default function Header() {
       <div className="bg-navy text-xs text-white/80">
         <div className="page-container flex h-9 items-center justify-between">
           <p>Genuine tech. Expert support. Delivered.</p>
-          <p className="hidden sm:block">Kigali delivery from RWF 80 · Demo store</p>
+          <p className="hidden sm:block">Kigali delivery from RWF 80 Â· Demo store</p>
         </div>
       </div>
 
@@ -106,7 +106,7 @@ export default function Header() {
               </span>
             )}
           </Link>
-          <Link href="/account" className={`${iconButton} hidden sm:flex`} aria-label="My account">
+          <Link href="/sign-in" className={`${iconButton} hidden sm:flex`} aria-label="Sign in">
             <UserIcon />
           </Link>
           <div className="ml-2 hidden md:block">
@@ -173,7 +173,7 @@ function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
           href="/shop/macbook-air-13-m3"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
         >
-          New: MacBook Air M3 · Explore now <ArrowRightIcon size={16} />
+          New: MacBook Air M3 Â· Explore now <ArrowRightIcon size={16} />
         </Link>
       </div>
     </div>
@@ -210,7 +210,7 @@ function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => bool
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-4 sm:hidden">
-          <Button href="/account" variant="secondary">
+          <Button href="/sign-in" variant="secondary">
             <UserIcon size={18} /> My account
           </Button>
           <Button href="/account/wishlist" variant="secondary">
@@ -224,3 +224,5 @@ function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => bool
     </div>
   );
 }
+
+

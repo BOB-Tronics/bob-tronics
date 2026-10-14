@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,15 +39,17 @@ const compactLinks = ["Support", "Returns & warranty", "Privacy", "Terms", "Secu
 export default function Footer() {
   const pathname = usePathname();
 
+  if (pathname === "/sign-in" || pathname === "/sign-up") return null;
+
   if (pathname !== "/") {
     return (
-      <footer className="mt-12 bg-navy text-sm text-white/80">
+      <footer className="mt-12 bg-[#080E28] text-sm text-white/80">
         <div className="page-container flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p>BOB TRONICS · © 2026 · Demo store</p>
+          <p>BOB TRONICS Â· Â© 2026 Â· Demo design</p>
           <p className="flex flex-wrap gap-x-1">
             {compactLinks.map((label, index) => (
               <span key={label}>
-                {index > 0 && " · "}
+                {index > 0 && " Â· "}
                 <Link href="/contact" className="hover:text-white">
                   {label}
                 </Link>
@@ -67,7 +69,7 @@ export default function Footer() {
             <p className="text-2xl font-extrabold tracking-tight">BOB TRONICS</p>
             <p className="mt-4 text-white/80">Your next upgrade. Your trusted technology partner.</p>
             <p className="mt-3 text-xs text-white/60">
-              Illustrative demo store · Contact details are examples.
+              Illustrative demo store Â· Contact details are examples.
             </p>
           </div>
           {footerColumns.map((column) => (
@@ -86,10 +88,11 @@ export default function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 BOB TRONICS. Demo design.</p>
-          <p>Mobile Money · Visa · Mastercard · Secure checkout</p>
+          <p>Â© 2026 BOB TRONICS. Demo design.</p>
+          <p>Mobile Money Â· Visa Â· Mastercard Â· Secure checkout</p>
         </div>
       </div>
     </footer>
   );
 }
+
