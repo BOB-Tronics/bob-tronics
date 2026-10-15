@@ -1,4 +1,3 @@
-import AccountShell from "@/components/account/AccountShell";
 import OrderStatusBadge from "@/components/account/OrderStatusBadge";
 import OrdersTable from "@/components/account/OrdersTable";
 import Badge from "@/components/ui/Badge";
@@ -30,7 +29,7 @@ export default async function AccountOverviewPage() {
   const address = addresses.find((a) => a.isDefault) ?? addresses[0];
 
   return (
-    <AccountShell title={`Welcome back, ${user.firstName}.`}>
+    <>
       <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <StatCard value={orders.length} label="Orders" />
         <StatCard value={wishlistIds.length} label="Saved products" />
@@ -98,7 +97,7 @@ export default async function AccountOverviewPage() {
           </Card>
         )}
       </div>
-    </AccountShell>
+    </>
   );
 }
 

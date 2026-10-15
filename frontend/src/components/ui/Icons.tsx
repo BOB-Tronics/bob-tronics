@@ -186,6 +186,16 @@ export function NetworkIcon(p: IconProps) {
   );
 }
 
+
+export function LaptopIcon(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <rect x="5" y="4" width="14" height="12" rx="1.5" />
+      <path d="M2.5 19h19l-1.5-3H4l-1.5 3Z" />
+    </svg>
+  );
+}
+
 export function RouterIcon(p: IconProps) {
   return (
     <svg {...base(p)}>

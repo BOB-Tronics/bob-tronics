@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import AccountShell from "@/components/account/AccountShell";
 import OrderStatusBadge from "@/components/account/OrderStatusBadge";
 import OrderTimeline from "@/components/account/OrderTimeline";
 import Badge from "@/components/ui/Badge";
@@ -17,7 +16,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/account/or
   const address = addresses.find((a) => a.isDefault) ?? addresses[0];
 
   return (
-    <AccountShell title={`Order ${order.id}`}>
+    <>
       <div className="flex flex-wrap gap-2">
         <OrderStatusBadge status={order.status} />
         <Badge tone="success">{order.paymentStatus === "Paid" ? "Payment received" : "Payment pending"}</Badge>
@@ -102,6 +101,6 @@ export default async function OrderDetailPage({ params }: PageProps<"/account/or
           </div>
         </Card>
       </div>
-    </AccountShell>
+    </>
   );
 }

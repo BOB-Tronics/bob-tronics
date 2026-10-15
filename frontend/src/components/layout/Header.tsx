@@ -32,6 +32,8 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
+  if (pathname === "/sign-in" || pathname === "/sign-up") return null;
+
   function closeMenus() {
     setMenuOpen(false);
     setCategoriesOpen(false);

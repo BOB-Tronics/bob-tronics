@@ -6,7 +6,7 @@
   --color-hero: #03194a;
   --color-primary: #060a8a;
   --color-primary-dark: #04066b;
-  --color-surface: #f5f7fb;
+  --color-surface: #B4C3F859;
   --color-accent: #efeefe;
   --color-accent-strong: #e2e1fb;
   --color-success: #0c7853;
@@ -40,6 +40,11 @@ html {
 
 body {
   background-color: var(--color-surface);
+  background-image: url("/images/background.png");
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--color-ink);
 }
 
@@ -53,13 +58,7 @@ body {
 }
 
 .auth-background {
-  background-color: #f8f8fa;
-  background-image:
-    repeating-linear-gradient(135deg, transparent 0 18px, rgba(15, 23, 42, 0.018) 19px 23px, transparent 24px 42px),
-    linear-gradient(45deg, transparent 0 30%, rgba(15, 23, 42, 0.025) 30.1%, rgba(15, 23, 42, 0.012) 45%, transparent 45.1%),
-    linear-gradient(45deg, transparent 0 63%, rgba(15, 23, 42, 0.025) 63.1%, rgba(15, 23, 42, 0.01) 77%, transparent 77.1%);
-  background-size: 720px 720px, 1050px 1050px, 1250px 1250px;
-  background-position: center, center -180px, right -300px top -260px;
+  background-color: transparent;
 }
 
 .auth-welcome-panel {
