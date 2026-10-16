@@ -39,7 +39,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - GET /promotions/active/ -> src/services/promotions.ts getActivePromotions, VERIFIED (200, paginated {"count":0,"results":[]})
 - GET /catalog/active/ -> src/services/promotions.ts (fallback), VERIFIED (200, same shape as /promotions/active/)
 - GET /promotions/products/{product_id}/ -> src/services/promotions.ts getProductDiscount, UNVERIFIED (no products exist to test with)
-- GET /reviews/ -> src/services/reviews.ts getReviews, VERIFIED (200, paginated {"count":0,"results":[]})
+- GET /reviews/ -> `src/services/reviews.ts` `getReviews`, VERIFIED (200 with paginated `{count:0,results:[]}`; code handles plain arrays too). The real list is shown on Operations / Reviews; populated item field aliases remain UNVERIFIED, so check the browser's development-only `[shape] GET /reviews/` field-name log when a review exists.
 - GET /reviews/{id}/ -> src/services/reviews.ts getReview, UNVERIFIED (no reviews exist to test with)
 - GET /deliveries/track/{tracking_number}/ -> src/services/deliveries.ts trackDelivery, UNVERIFIED (no tracking numbers exist)
 
@@ -74,7 +74,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - POST /orders/{order_id}/cancel/ -> src/services/account.ts cancelOrder, UNVERIFIED (needs auth token)
 - GET /deliveries/orders/{order_id}/ -> src/services/deliveries.ts getDeliveryForOrder, UNVERIFIED (needs auth token)
 - GET /services/ -> src/services/services.ts getServices, UNVERIFIED (needs auth token)
-- POST /services/ -> src/services/services.ts createService, UNVERIFIED (needs auth token)
+- POST /services/ -> `src/services/services.ts` `createService`, called by `src/components/services/ServiceRequestForm.tsx`, UNVERIFIED (test with a signed-in customer; confirm `name` and `service_type: "other"` semantics; appointment, location, phone, and email are included in description because the current input type has no separate fields; file attachments are not uploaded)
 - GET /services/{service_id}/ -> src/services/services.ts getService, UNVERIFIED (needs auth token)
 - POST /reviews/ -> src/services/reviews.ts createReview, UNVERIFIED (needs auth token)
 - Addresses: GET /customers/address/ exists for single residence/phone. No full address CRUD endpoint -> getAddresses returns [] when not mock.
@@ -90,28 +90,28 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - POST /catalog/admin/products/ -> src/services/admin.ts adminCreateProduct, UNVERIFIED (body inferred as category/name/description/brand/price/stock_quantity/warranty/is_available; verify exact API docs shape)
 - GET/PUT/PATCH/DELETE /catalog/admin/products/{product_id}/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 - POST /catalog/admin/products/{product_id}/adjust-stock/ -> src/services/admin.ts adminAdjustStock, UNVERIFIED (delta/reason inferred; verify successful adjustment and resulting quantity)
-- GET /catalog/admin/products/low-stock/ -> src/services/admin.ts adminLowStock, UNVERIFIED (verify low-stock criteria and response shape)
+- GET /catalog/admin/products/low-stock/?threshold=5 -> `adminLowStock` / `adminLowStockCount`, VERIFIED (user supplied paginated response with 3 products; query parameter and response shape confirmed; the intended business cutoff and whether comparison is `<` or `<=` remain UNVERIFIED)
 - GET /promotions/admin/discounts/ (main) -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 - POST /promotions/admin/discounts/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 - GET/PUT/PATCH/DELETE /promotions/admin/discounts/{discount_id}/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 - NOTE: /catalog/admin/discounts/ is a duplicate; use /promotions/admin/discounts/
-- GET /customers/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
-- GET /customers/{user_id}/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
-- GET /services/admin/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
+- GET /customers/ -> src/services/admin.ts `adminListCustomers`, VERIFIED (browser response confirmed admin-authenticated paginated `{count,next,previous,results}` shape; result fields include `user_id`, `first_name`, `last_name`, and `email`)
+- GET /customers/{user_id}/ -> src/services/admin.ts `adminGetCustomer`, VERIFIED (browser response confirmed detail fields `user_id`, `first_name`, `last_name`, `email`, `phone`, `residence`, `created_at`, `updated_at`, `is_active`, `role`, `total_orders`, `total_spent`, and `recent_orders`; recent order entries were empty in the observed response)
+- GET /services/admin/ -> src/services/admin.ts `adminListServices`, VERIFIED (browser response confirmed authenticated paginated `{count,next,previous,results}` envelope; current result set is empty, so service fields remain UNVERIFIED)
 - GET/PATCH /services/admin/{service_id}/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
-- GET /orders/admin/all/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
+- GET /orders/admin/all/ -> src/services/admin.ts `adminListOrders`, VERIFIED (browser response confirmed authenticated paginated `{count,next,previous,results}` envelope; current result set is empty, so order fields remain UNVERIFIED)
 - PATCH /orders/admin/{order_id}/status/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 
 ### Dashboard, orders, customers, service requests (current integration pass)
-- GET /orders/admin/all/ -> `adminListOrders` -> UNVERIFIED (check real array/paginated shape, field aliases, totals, and list refresh after status changes)
+- GET /orders/admin/all/ -> `adminListOrders` -> VERIFIED (user supplied browser response confirmed paginated envelope and empty result; verify field aliases/totals when orders exist)
 - GET /orders/{order_id}/ -> `adminGetOrder` -> UNVERIFIED (check detail wrapper, order item fields, and whether detail includes fields absent from list)
 - PATCH /orders/admin/{order_id}/status/ -> `adminPatchOrderStatus` -> UNVERIFIED (check accepted request key/status values, 400 field errors, and 403 handling)
-- GET /customers/ -> `adminListCustomers` -> UNVERIFIED (check list shape, identifiers, and which profile fields are returned)
-- GET /customers/{user_id}/ -> `adminGetCustomer` -> UNVERIFIED (check detail wrapper and profile field names)
-- GET /services/admin/ -> `adminListServices` -> UNVERIFIED (check list shape, customer identifier, appointment and status field names)
+- GET /customers/ -> `adminListCustomers` -> VERIFIED (user supplied browser response; paginated list and customer id/name/email mapping confirmed; other profile fields remain UNVERIFIED)
+- GET /customers/{user_id}/ -> `adminGetCustomer` -> VERIFIED (user supplied browser response; confirmed profile fields and empty `recent_orders` array; non-empty recent-order entry shape remains UNVERIFIED)
+- GET /services/admin/ -> `adminListServices` -> VERIFIED (user supplied browser response confirmed paginated envelope and empty result; verify customer, appointment, and status field names when requests exist)
 - GET /services/admin/{service_id}/ -> `adminGetService` -> UNVERIFIED (check detail wrapper and returned fields)
 - PATCH /services/admin/{service_id}/ -> `adminPatchService` -> UNVERIFIED (check accepted patch fields and status values)
-- GET /catalog/admin/products/low-stock/ -> `adminLowStock` / `adminLowStockCount` -> UNVERIFIED (check response shape and backend low-stock criteria)
+- GET /catalog/admin/products/low-stock/?threshold=5 -> `adminLowStock` / `adminLowStockCount` -> VERIFIED (user supplied successful paginated response; confirms `product_id`, `category`, `category_name`, `name`, `brand`, string `price`, `stock_quantity`, `warranty`, and `is_available` fields); threshold value `5` is accepted, but intended default and `<` versus `<=` behavior remain UNVERIFIED
 
 ### FIELDS WITH NO BACKEND SOURCE
 - Dashboard revenue, sales, previous-period comparisons, revenue time series, category sales, report export data, all-products total, delivery totals/readiness, and recent activity feed: no corresponding endpoint was supplied.
@@ -126,9 +126,15 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - `src/app/operations/reports/page.tsx` -> hardcoded product/report data; no reporting endpoint was supplied.
 - `src/app/operations/notifications/page.tsx` -> demo customer notification feed/send interaction; no admin notifications endpoint was supplied.
 - `src/app/operations/settings/page.tsx` -> settings save is local demo state; no admin settings endpoint was supplied.
-- `src/app/operations/reviews/page.tsx` -> demo review reply interaction; the supplied review endpoints do not include an admin reply endpoint.
+- `src/app/operations/reviews/page.tsx` -> loads real `GET /reviews/` list; publish, hide, reply, and status tabs are disabled because no moderation endpoints/status contract was supplied.
 - `src/components/operations/OperationsShell.tsx` and `OperationsFrame.tsx` provide shared navigation/layout and do not own these demo datasets.
 - These pages were outside the authorized page scope and remain unchanged in this integration pass.
+- Dashboard verification: user confirmed the low-stock alert displays `3` from the verified `/catalog/admin/products/low-stock/?threshold=5` response.
+
+### Reviews list assumptions
+- `src/services/reviews.ts` `getReviews` accepts either a plain array or a paginated object with `results`.
+- `// UNVERIFIED: confirm populated review field aliases against the live backend.` The mapper checks `feedback_id`/`review_id`/`id`, author aliases `user_name`/`author`/`user`/`customer_name`, product aliases `product_name`/`product`, rating/score, `created_at`/date/created, comment/text/review, and status/status_display. Missing display values render as `—`; a numeric user id is displayed as `user-<id>` and numeric product id as `#<id>`.
+- Publish/hide/reply actions and review status filtering have no supplied backend endpoint or verified status field; buttons and status tabs are disabled and labeled unavailable.
 
 ## NO BACKEND ENDPOINT items
 - Addresses full CRUD (only GET /customers/address/ exists for single residence/phone) -> getAddresses returns [] when not mock
