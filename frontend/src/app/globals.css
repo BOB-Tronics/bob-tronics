@@ -39,13 +39,9 @@ html {
 }
 
 body {
-  background-color: var(--color-surface);
   background-image: url("/images/background.png");
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-attachment: fixed;
-  color: var(--color-ink);
+  
+  
 }
 
 /* Hide scrollbars on horizontal chip rows while keeping them scrollable */

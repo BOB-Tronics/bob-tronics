@@ -73,7 +73,11 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
   }
 
   const formPanel = (
-    <section className="flex min-h-[590px] items-center justify-center bg-[#DEE5FA] px-6 py-10 sm:px-12 md:px-10 lg:px-16" aria-labelledby="auth-title">
+<section 
+ 
+  className="flex min-h-[3791px] min-w-[1791px] items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-10 sm:px-12 md:px-10 lg:px-16" 
+ aria-labelledby="auth-title"
+>
       <div className="w-full max-w-md">
         <Link href="/" aria-label="BOB TRONICS home" className="mx-auto mb-4 block w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
           <Image src="/images/logo.png" alt="BOB TRONICS" width={64} height={64} priority />
