@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { wishlistProductIds } from "@/lib/mock-data";
+import { isAuthenticated, authApiFetch } from "@/lib/auth";
 
 const STORAGE_KEY = "bobtronics-wishlist";
 
@@ -16,23 +16,44 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   // Starts with the mock wishlist so the account page has content to show.
-  const [ids, setIds] = useState<string[]>(wishlistProductIds);
+  const [ids, setIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  // ---- LocalStorage wishlist (logged out) ----
+
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      // Restoring from localStorage on mount is the one place we set state in an effect.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setIds(JSON.parse(saved));
-    } catch {
-      // Fall back to the default list.
-    }
-    setLoaded(true);
+    let cancelled = false;
+    (async () => {
+      if (isAuthenticated()) {
+        // Load from backend instead.
+        try {
+          const response = await authApiFetch<{ wishlist_item_id: number; product: { product_id: number } }[]>(
+            "/wishlist/"
+          );
+          if (!cancelled && response) {
+            setIds(response.map((item) => String(item.product.product_id)));
+          }
+        } catch {
+          // Keep empty wishlist on error.
+        }
+      } else {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (!cancelled && saved) setIds(JSON.parse(saved));
+        } catch {
+          // Fall back to empty list.
+        }
+      }
+      if (!cancelled) setLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
+    if (isAuthenticated()) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
     } catch {
@@ -45,6 +66,32 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }
 
   function toggle(productId: string) {
+    if (isAuthenticated()) {
+      void (async () => {
+        if (ids.includes(productId)) {
+          try {
+            await authApiFetch(`/wishlist/items/${Number(productId)}/`, {
+              method: "DELETE",
+            });
+            setIds((current) => current.filter((id) => id !== productId));
+          } catch {
+            // Backend error surfaces via caller error handling.
+          }
+        } else {
+          try {
+            await authApiFetch("/wishlist/items/", {
+              method: "POST",
+              body: JSON.stringify({ product_id: Number(productId) }),
+            });
+            setIds((current) => [...current, productId]);
+          } catch {
+            // Backend error surfaces via caller error handling.
+          }
+        }
+      })();
+      return;
+    }
+
     setIds((current) =>
       current.includes(productId)
         ? current.filter((id) => id !== productId)
@@ -53,6 +100,20 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }
 
   function remove(productId: string) {
+    if (isAuthenticated()) {
+      void (async () => {
+        try {
+          await authApiFetch(`/wishlist/items/${Number(productId)}/`, {
+            method: "DELETE",
+          });
+          setIds((current) => current.filter((id) => id !== productId));
+        } catch {
+          // Backend error surfaces via caller error handling.
+        }
+      })();
+      return;
+    }
+
     setIds((current) => current.filter((id) => id !== productId));
   }
 

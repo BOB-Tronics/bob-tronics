@@ -6,7 +6,7 @@
   --color-hero: #03194a;
   --color-primary: #060a8a;
   --color-primary-dark: #04066b;
-  --color-surface: #f5f7fb;
+  --color-surface: #B4C3F859;
   --color-accent: #efeefe;
   --color-accent-strong: #e2e1fb;
   --color-success: #0c7853;
@@ -40,6 +40,11 @@ html {
 
 body {
   background-color: var(--color-surface);
+  background-image: url("/images/background.png");
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--color-ink);
 }
 
@@ -50,4 +55,12 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.auth-background {
+  background-color: transparent;
+}
+
+.auth-welcome-panel {
+  background: linear-gradient(135deg, #080542, #130d66, #080542);
 }

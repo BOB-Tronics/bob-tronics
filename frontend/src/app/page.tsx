@@ -25,7 +25,7 @@ export default async function HomePage() {
   const featured = products.filter((p) => p.featured);
 
   return (
-    <>
+    <div className="bg-[#B4C3F859]">
       <Hero />
       <TrustBar />
 
@@ -83,6 +83,6 @@ export default async function HomePage() {
 
         <Newsletter />
       </div>
-    </>
+    </div>
   );
 }

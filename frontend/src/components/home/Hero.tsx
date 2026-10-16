@@ -5,10 +5,22 @@ import { ArrowRightIcon } from "@/components/ui/Icons";
 export default function Hero() {
   return (
     <section className="relative overflow-hidden bg-hero text-white">
+      {/* Full-bleed background GIF */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/home.gif"
+          alt="Laptops, phones, consoles and accessories sold by BOB TRONICS"
+          fill
+          priority
+          className="object-cover opacity-60"
+          sizes="100vw"
+        />
+      </div>
+
       {/* Decorative network lines and dots from the design */}
       <svg
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-60 z-10"
         viewBox="0 0 1280 660"
         preserveAspectRatio="xMidYMid slice"
       >
@@ -29,7 +41,7 @@ export default function Hero() {
         </g>
       </svg>
 
-      <div className="page-container relative grid items-center gap-10 py-14 lg:grid-cols-[1.05fr_1fr] lg:py-20">
+      <div className="page-container relative grid items-center gap-10 py-14 lg:grid-cols-[1.05fr_1fr] lg:py-20 z-20">
         <div>
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
             Technology That Moves You Forward.
@@ -47,18 +59,6 @@ export default function Hero() {
             </Button>
           </div>
           <p className="mt-6 text-sm text-white/70">Apple · Samsung · Dell · Sony · HP</p>
-        </div>
-
-        <div className="mx-auto w-full max-w-md lg:max-w-none">
-          <Image
-            src="/images/hero-devices.png"
-            alt="Laptops, phones, consoles and accessories sold by BOB TRONICS"
-            width={820}
-            height={900}
-            priority
-            className="h-auto w-full"
-            sizes="(max-width: 1024px) 90vw, 560px"
-          />
         </div>
       </div>
     </section>

@@ -21,10 +21,10 @@ export default function ServiceCards({ services }: { services: ItService[] }) {
             <h3 className="mt-5 text-xl font-semibold text-ink">{service.name}</h3>
             <p className="mt-3 text-muted">{service.description}</p>
             <Link
-              href="/it-services"
+              href={`/it-services/request?service=${encodeURIComponent(service.name)}`}
               className="mt-5 inline-flex items-center gap-1 font-semibold text-primary hover:underline"
             >
-              Request a service <ArrowRightIcon size={16} />
+              Choose service <ArrowRightIcon size={16} />
             </Link>
           </Card>
         );
