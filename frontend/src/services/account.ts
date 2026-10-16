@@ -128,7 +128,51 @@ export async function getAddresses(): Promise<Address[]> {
 }
 
 export async function getWishlistIds(): Promise<string[]> {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("bob_access_token") : null;
+    const res = await apiFetch<{ results?: { product: number | string }[] } | { product: number | string }[]>("/catalog/wishlist/", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    let items: { product: number | string }[] = [];
+    if (Array.isArray(res)) items = res;
+    else if (res && Array.isArray(res.results)) items = res.results;
+
+    if (items.length > 0) {
+      return items.map((i) => String(i.product));
+    }
+  } catch (error) {
+    console.warn("Failed to fetch wishlist from API, using mock", error);
+  }
   return delay(wishlistProductIds);
+}
+
+export async function addToWishlistApi(productId: string): Promise<boolean> {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("bob_access_token") : null;
+    await apiFetch("/catalog/wishlist/", {
+      method: "POST",
+      body: { product: Number(productId) } as unknown as BodyInit,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    return true;
+  } catch (error) {
+    console.warn("Failed to add to wishlist API", error);
+    return false;
+  }
+}
+
+export async function removeFromWishlistApi(productId: string): Promise<boolean> {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("bob_access_token") : null;
+    await apiFetch(`/catalog/wishlist/${productId}/`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    return true;
+  } catch (error) {
+    console.warn("Failed to remove from wishlist API", error);
+    return false;
+  }
 }
 
 export async function getServiceRequests(): Promise<ServiceRequest[]> {
