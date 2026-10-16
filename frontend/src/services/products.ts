@@ -91,15 +91,35 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
-  return products.find((p) => p.slug === slug);
+  // Extract id if slug follows product-ID pattern
+  const parts = slug.split("-");
+  const idStr = parts[parts.length - 1];
+  const id = Number(idStr);
+
+  if (!isNaN(id)) {
+    try {
+      const response = await apiFetch<BackendProduct>(`/catalog/products/${id}/`);
+      if (response) {
+        return mapBackendProductToProduct(response);
+      }
+    } catch {
+      // Fallback or ignore
+    }
+  }
+
+  // Fallback to fetch all and find
+  const productsList = await getProducts();
+  return productsList.find((p) => p.slug === slug || p.id === slug);
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
-  return products.filter((p) => ids.includes(p.id));
+  const productsList = await getProducts();
+  return productsList.filter((p) => ids.includes(p.id));
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
-  return products.filter((p) => p.id !== product.id).slice(0, limit);
+  const productsList = await getProducts();
+  return productsList.filter((p) => p.id !== product.id).slice(0, limit);
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -112,6 +132,37 @@ export async function getCategories(): Promise<Category[]> {
   return response.results.map(mapBackendCategoryToCategory);
 }
 
-export function getProductSync(id: string): Product | undefined {
-  return products.find((p) => p.id === id);
+export interface ProductReview {
+  id: number;
+  product: number;
+  user?: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export async function getProductReviews(productId: string): Promise<ProductReview[]> {
+  try {
+    const res = await apiFetch<PaginatedResponse<ProductReview> | ProductReview[]>(`/catalog/products/${productId}/reviews/`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+  } catch (error) {
+    console.warn("Failed to fetch product reviews from API", error);
+  }
+  return [];
+}
+
+export async function addProductReview(productId: string, rating: number, comment: string): Promise<ProductReview | null> {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("bob_access_token") : null;
+    const res = await apiFetch<ProductReview>(`/catalog/products/${productId}/reviews/`, {
+      method: "POST",
+      body: { rating, comment } as unknown as BodyInit,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    return res;
+  } catch (error) {
+    console.warn("Failed to add product review", error);
+    return null;
+  }
 }
