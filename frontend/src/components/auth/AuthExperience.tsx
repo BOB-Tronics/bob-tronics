@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { loginUser, registerUser } from "@/services/account";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -23,11 +24,34 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
     router.push(`/${nextMode}`);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
-    setMessage(isSignIn ? "Demo sign-in submitted. Authentication is not connected yet." : "Demo account submitted. Registration is not connected yet.");
-    setTimeout(() => setIsLoading(false), 1000);
+    setMessage("");
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const name = formData.get("name") as string;
+
+    try {
+      if (isSignIn) {
+        await loginUser({ email, password });
+        setMessage("Sign in successful! Redirecting...");
+        setTimeout(() => router.push("/operations/dashboard"), 600);
+      } else {
+        const [first_name, ...lastNameParts] = (name || "").trim().split(" ");
+        const last_name = lastNameParts.join(" ");
+        const username = email.split("@")[0] + Math.floor(Math.random() * 1000);
+        await registerUser({ username, email, password, first_name, last_name });
+        setMessage("Account created successfully! Please sign in.");
+        setTimeout(() => switchMode("sign-in"), 1000);
+      }
+    } catch (error: any) {
+      setMessage(error?.message ?? "Authentication failed. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const formPanel = (
