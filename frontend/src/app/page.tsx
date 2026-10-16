@@ -25,7 +25,7 @@ export default async function HomePage() {
   const featured = products.filter((p) => p.featured);
 
   return (
-    <div className="bg-[#B4C3F859]">
+    <div className="bg-surface">
       <Hero />
       <TrustBar />
 

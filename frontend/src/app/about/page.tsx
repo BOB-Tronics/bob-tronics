@@ -14,7 +14,7 @@ const principles = [
 
 export default function AboutPage() {
   return (
-    <div className="auth-background">
+    <div className="auth-background text-ink">
       <div className="page-container pb-14">
         <PageHeader crumbs={[{ label: "Home", href: "/" }, { label: "About" }]} title="About BOB TRONICS" subtitle="Genuine tech. Expert support. Delivered." />
         <section className="grid overflow-hidden rounded-3xl bg-navy text-white shadow-card lg:min-h-[560px] lg:grid-cols-[0.8fr_1.2fr]">

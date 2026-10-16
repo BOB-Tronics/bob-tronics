@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useTheme } from "@/components/layout/Providers";
 import { categories } from "@/lib/mock-data";
 import { useCart } from "@/hooks/useCart";
 import Button from "@/components/ui/Button";
@@ -15,6 +16,8 @@ import {
   HeartIcon,
   MenuIcon,
   SearchIcon,
+  MoonIcon,
+  SunIcon,
   UserIcon,
 } from "@/components/ui/Icons";
 
@@ -29,6 +32,7 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const { totalQuantity } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
@@ -94,6 +98,16 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            className={iconButton}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={theme === "dark"}
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
           <Link href="/shop" className={`${iconButton} hidden sm:flex`} aria-label="Search products">
             <SearchIcon />
           </Link>
