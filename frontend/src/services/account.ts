@@ -32,19 +32,22 @@ export interface AuthTokens {
 export async function loginUser(credentials: LoginCredentials): Promise<AuthTokens> {
   try {
     const payload = {
-      username: credentials.username ?? credentials.email,
+      email: credentials.email ?? credentials.username,
       password: credentials.password,
     };
-    const res = await apiFetch<AuthTokens>("/auth/token/", {
+    const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/auth/login/", {
       method: "POST",
       body: payload as unknown as BodyInit,
     });
-    if (res && res.access) {
+    
+    const tokens: AuthTokens | undefined = res?.tokens ?? (res?.access && res?.refresh ? { access: res.access, refresh: res.refresh } : undefined);
+
+    if (tokens && tokens.access) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("bob_access_token", res.access);
-        localStorage.setItem("bob_refresh_token", res.refresh);
+        localStorage.setItem("bob_access_token", tokens.access);
+        localStorage.setItem("bob_refresh_token", tokens.refresh);
       }
-      return res;
+      return tokens;
     }
     throw new Error("Invalid login response");
   } catch (error) {
