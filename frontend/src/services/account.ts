@@ -30,34 +30,25 @@ export interface AuthTokens {
 }
 
 export async function loginUser(credentials: LoginCredentials): Promise<AuthTokens> {
-  try {
-    const payload = {
-      email: credentials.email ?? credentials.username,
-      password: credentials.password,
-    };
-    const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/auth/login/", {
-      method: "POST",
-      body: payload as unknown as BodyInit,
-    });
-    
-    const tokens: AuthTokens | undefined = res?.tokens ?? (res?.access && res?.refresh ? { access: res.access, refresh: res.refresh } : undefined);
+  const payload = {
+    email: credentials.email ?? credentials.username,
+    password: credentials.password,
+  };
+  const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/auth/login/", {
+    method: "POST",
+    body: payload as unknown as BodyInit,
+  });
+  
+  const tokens: AuthTokens | undefined = res?.tokens ?? (res?.access && res?.refresh ? { access: res.access, refresh: res.refresh } : undefined);
 
-    if (tokens && tokens.access) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("bob_access_token", tokens.access);
-        localStorage.setItem("bob_refresh_token", tokens.refresh);
-      }
-      return tokens;
-    }
-    throw new Error("Invalid login response");
-  } catch (error) {
-    console.warn("Backend login failed, using mock auth", error);
+  if (tokens && tokens.access) {
     if (typeof window !== "undefined") {
-      localStorage.setItem("bob_access_token", "mock-access-token");
-      localStorage.setItem("bob_refresh_token", "mock-refresh-token");
+      localStorage.setItem("bob_access_token", tokens.access);
+      localStorage.setItem("bob_refresh_token", tokens.refresh);
     }
-    return { access: "mock-access-token", refresh: "mock-refresh-token" };
+    return tokens;
   }
+  throw new Error("Invalid login response");
 }
 
 export async function registerUser(data: RegisterData): Promise<User> {
