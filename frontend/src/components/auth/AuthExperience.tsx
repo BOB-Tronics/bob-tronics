@@ -36,9 +36,16 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
 
     try {
       if (isSignIn) {
-        await loginUser({ email, password });
+        const data = await loginUser({ email, password });
+        if (data?.access) {
+          localStorage.setItem("bob_access_token", data.access);
+          if (data.refresh) {
+            localStorage.setItem("bob_refresh_token", data.refresh);
+          }
+        }
         setMessage("Sign in successful! Redirecting...");
-        setTimeout(() => router.push("/operations/dashboard"), 600);
+        router.refresh();
+        router.push("/operations/dashboard");
       } else {
         const [first_name, ...lastNameParts] = (name || "").trim().split(" ");
         const last_name = lastNameParts.join(" ");
@@ -48,6 +55,7 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
         setTimeout(() => switchMode("sign-in"), 1000);
       }
     } catch (error: any) {
+      console.error("Erro detalhado no login:", error);
       setMessage(error?.message ?? "Authentication failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
