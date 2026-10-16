@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+import { login, register } from "@/lib/auth";
+import type { RegisterInput } from "@/types";
+
 type AuthMode = "sign-in" | "sign-up";
 
 export default function AuthExperience({ initialMode }: { initialMode: AuthMode }) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const isSignIn = mode === "sign-in";
@@ -20,14 +24,52 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
     setMessage("");
+    setError("");
     router.push(`/${nextMode}`);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function setFieldError(field: string, msg: string) {
+    setError(msg);
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
-    setMessage(isSignIn ? "Demo sign-in submitted. Authentication is not connected yet." : "Demo account submitted. Registration is not connected yet.");
-    setTimeout(() => setIsLoading(false), 1000);
+    setError("");
+    setMessage("");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const email = (formData.get("email") ?? "").toString();
+    const password = (formData.get("password") ?? "").toString();
+
+    try {
+      if (isSignIn) {
+        await login(email, password);
+        router.push("/account");
+        return;
+      }
+
+      const name = (formData.get("name") ?? "").toString();
+      const input: RegisterInput = { first_name: name, last_name: "", email, password, password_confirm: password };
+      await register(input);
+      setMessage(
+        "Account created. Check your email for activation instructions, then sign in."
+      );
+      setTimeout(() => switchMode("sign-in"), 1500);
+    } catch (err: unknown) {
+      const isActivatedError =
+        err instanceof Error && /activat/i.test(err.message);
+      if (isSignIn && isActivatedError) {
+        setError("Your account is not activated. Check your email for the activation link.");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(isSignIn ? "Sign-in failed. Please try again." : "Registration failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const formPanel = (
@@ -46,6 +88,7 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
           {!isSignIn && <div><label htmlFor="auth-name" className="sr-only">Name</label><input id="auth-name" name="name" type="text" autoComplete="name" required placeholder="Name" className="h-12 w-full rounded-full border-0 bg-[#F0F0F0] px-4 text-sm text-ink placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary" /></div>}
           <div><label htmlFor="auth-email" className="sr-only">Email</label><input id="auth-email" name="email" type="email" autoComplete="email" required placeholder="Enter your email" className="h-12 w-full rounded-full border-0 bg-[#F0F0F0] px-4 text-sm text-ink placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary" /></div>
           <div className="relative"><label htmlFor="auth-password" className="sr-only">Password</label><input id="auth-password" name="password" type={passwordVisible ? "text" : "password"} autoComplete={isSignIn ? "current-password" : "new-password"} minLength={8} required placeholder="Enter password" className="h-12 w-full rounded-full border-0 bg-[#F0F0F0] px-4 pr-12 text-sm text-ink placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary" /><button type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} className="absolute inset-y-0 right-3 flex items-center text-[#414963] hover:text-primary"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{passwordVisible ? <><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.2-1 2.4-2 3.4" /><path d="M6.2 6.2C4 7.5 2.5 9.7 2 12c.7 2.5 4 7 10 7 1.1 0 2.1-.2 3-.5" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}</svg></button></div>
+          {error && <p role="status" className="text-center text-xs text-red-600">{error}</p>}
           {message && <p role="status" className="text-center text-xs text-[#414963]">{message}</p>}
           <div className="pt-6 text-center"><button type="submit" disabled={isLoading} className="min-w-40 rounded-full bg-[#100578] px-8 py-3 text-sm font-semibold uppercase text-white transition hover:bg-primary-dark disabled:opacity-60">{isLoading ? "Please wait…" : isSignIn ? "Sign In" : "Sign Up"}</button></div>
         </form>
@@ -61,4 +104,3 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
 
   return <div className="auth-background flex min-h-screen items-center justify-center p-5 sm:p-8"><div className="w-full lg:w-[70vw] max-w-6xl overflow-hidden rounded-3xl shadow-[0_24px_48px_rgba(10,15,40,0.2)]"><div className="grid md:grid-cols-2">{isSignIn ? <>{formPanel}{welcomePanel}</> : <>{welcomePanel}{formPanel}</>}</div></div></div>;
 }
-

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input, { Select } from "@/components/ui/Input";
+import { createService } from "@/services/services";
 
 const inputClass = "w-full rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 const buttonClass = "rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50";
@@ -40,7 +41,18 @@ export default function ServiceRequestForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("saving");
-    setTimeout(() => setStatus("done"), 500);
+    void (async () => {
+      try {
+        await createService({
+          name,
+          description: need,
+          service_type: "other",
+        });
+        setStep(4);
+      } catch {
+        setStatus("idle");
+      }
+    })();
   }
 
   if (services && !contactMode) {

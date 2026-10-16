@@ -251,3 +251,52 @@ Before finishing any feature, make sure:
    10. Explain each change in simple words, as if I'm a beginner.
    11. If something fails, show me the exact error and explain it before fixing.
    12. After each change, tell me exactly how to test it.
+
+
+   ### RULES FOR INTEGRATING WHEN THE BACKEND IS INCOMPLETE OR NOT WORKING
+
+A. BUILD FROM THE CONTRACT
+1. Build every call from the endpoint list and schemas I give you. Do not
+   invent endpoints, fields or response shapes. If something is missing,
+   ask me instead of guessing.
+2. All paths end with a trailing slash (Django requirement).
+3. Never block on a broken backend. Finish the frontend side, then record
+   what could not be verified.
+
+B. MOCK SWITCH (NOT A SILENT FALLBACK)
+4. Add one switch: NEXT_PUBLIC_USE_MOCK in .env.local ("true" or "false").
+   - false: always call the real backend.
+   - true: use the existing mock data.
+5. Keep the existing mock functions. Do not delete them. A service function
+   chooses real or mock in ONE place, never inside pages or components.
+6. NEVER silently replace a failed real request with mock data. If the real
+   call fails, throw the ApiError so the screen shows its error state.
+
+C. ERROR HANDLING
+7. Every screen that fetches data must handle: loading, error (with a
+   retry button), and empty state. A backend error must never crash a page.
+8. Use the existing apiFetch and ApiError. Log failures to the console
+   with the endpoint, status and response body, so I can send it to the
+   backend developer.
+9. Treat 401 as "not logged in", 404 as "not found", 400 as a validation
+   error (show field messages), and 500 or a network failure as a generic
+   "Something went wrong" message. Never show raw error text to users.
+10. Render's free server sleeps. Show a loading state that still works if
+    the first request takes up to 60 seconds.
+
+D. TRACK WHAT IS UNVERIFIED
+11. Create and maintain INTEGRATION_TODO.md in the project root. For each
+    connected endpoint, add one line:
+    - endpoint, file/function that uses it, status:
+      VERIFIED (tested against the real backend) or
+      UNVERIFIED (built from docs only), and what to check later.
+12. Mark unverified code with a comment: // UNVERIFIED: <what to check>
+13. List every assumption you made (field names, defaults for missing
+    fields, price/date formats).
+
+E. AUTHENTICATION
+14. Build login, register and token refresh from the documented endpoints,
+    but flag them UNVERIFIED until I confirm a real login works.
+15. Never store passwords. Keep tokens out of logs and out of the code.
+16. Admin endpoints (/admin/ paths) are out of scope until I say so.
+

@@ -2,6 +2,13 @@
 // fetch calls to `${API_URL}/...` when the backend is ready.
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
+export const USE_MOCK =
+  process.env.NEXT_PUBLIC_USE_MOCK === undefined ? true : process.env.NEXT_PUBLIC_USE_MOCK === "true";
+
+export function useMock(): boolean {
+  return USE_MOCK;
+}
+
 // Small helper so mock services behave like real network calls.
 export function delay<T>(value: T, ms = 150): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));

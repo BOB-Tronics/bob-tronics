@@ -1,4 +1,4 @@
-import { apiFetch, PaginatedResponse, ApiError } from "@/lib/api";
+import { apiFetch, PaginatedResponse, ApiError, useMock } from "@/lib/api";
 import { categories, products } from "@/lib/mock-data";
 import type { Category, CategorySlug, Product } from "@/types";
 
@@ -86,6 +86,23 @@ function mapBackendCategoryToCategory(item: BackendCategory): Category {
 
 // Replace the bodies of these functions with fetch calls when the backend exists.
 export async function getProducts(filters: ProductFilters = {}): Promise<Product[]> {
+  if (useMock()) {
+    let result = products;
+    if (filters.category) {
+      result = result.filter((p) => p.category === filters.category);
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.brand.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }
+
   const query = new URLSearchParams();
   if (filters.category) query.set("category", String(filters.category));
   if (filters.search) query.set("search", filters.search);
@@ -101,6 +118,10 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
+  if (useMock()) {
+    return getProductSync(slug);
+  }
+
   try {
     const response = await apiFetch<BackendProduct>(`/catalog/products/${slug}/`);
     if (!response) return undefined;
@@ -114,10 +135,27 @@ export async function getProduct(slug: string): Promise<Product | undefined> {
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
-  return products.filter((p) => ids.includes(p.id));
+  if (useMock()) {
+    return products.filter((p) => ids.includes(p.id));
+  }
+
+  const result: Product[] = [];
+  for (const id of ids) {
+    try {
+      const product = await getProduct(id);
+      if (product) result.push(product);
+    } catch {
+      // Skip products that fail to load.
+    }
+  }
+  return result;
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
+  if (useMock()) {
+    return products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, limit);
+  }
+
   const categoryId = productCategoryIdMap.get(product.id);
 
   if (categoryId === undefined) {
@@ -139,6 +177,10 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
 }
 
 export async function getCategories(): Promise<Category[]> {
+  if (useMock()) {
+    return categories;
+  }
+
   const response = await apiFetch<PaginatedResponse<BackendCategory>>("/catalog/categories/");
 
   if (!response || !response.results) {
