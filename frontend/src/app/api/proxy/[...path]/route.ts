@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = "https://bobtronics-store-backend.onrender.com/api/v1";
 
-export async function proxyHandler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const resolvedParams = await params;
+async function proxyHandler(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const resolvedParams = await context.params;
   const pathArray = resolvedParams.path || [];
   const subPath = pathArray.join("/");
   const searchParams = req.nextUrl.search;
@@ -11,7 +11,7 @@ export async function proxyHandler(req: NextRequest, { params }: { params: Promi
 
   const headers = new Headers();
   req.headers.forEach((value, key) => {
-    if (key !== "host" && key !== "connection") {
+    if (key !== "host" && key !== "connection" && key !== "content-length") {
       headers.set(key, value);
     }
   });
@@ -22,6 +22,7 @@ export async function proxyHandler(req: NextRequest, { params }: { params: Promi
       method: req.method,
       headers,
       body,
+      redirect: "follow",
     });
 
     const data = await response.text();
@@ -39,4 +40,18 @@ export async function proxyHandler(req: NextRequest, { params }: { params: Promi
   }
 }
 
-export { proxyHandler as GET, proxyHandler as POST, proxyHandler as PUT, proxyHandler as PATCH, proxyHandler as DELETE };
+export async function GET(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyHandler(req, context);
+}
+export async function POST(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyHandler(req, context);
+}
+export async function PUT(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyHandler(req, context);
+}
+export async function PATCH(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyHandler(req, context);
+}
+export async function DELETE(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyHandler(req, context);
+}
