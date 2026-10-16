@@ -1,4 +1,4 @@
-import { apiFetch, PaginatedResponse } from "@/lib/api";
+import { apiFetch, PaginatedResponse, ApiError } from "@/lib/api";
 import { categories, products } from "@/lib/mock-data";
 import type { Category, CategorySlug, Product } from "@/types";
 
@@ -12,11 +12,15 @@ interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
+  description: string;
   brand: string;
   price: string;
   stock_quantity: number;
+  warranty: string;
   is_available: boolean;
-  primary_image: string;
+  images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
+  created_at: string;
+  updated_at: string;
 }
 
 interface BackendCategory {
@@ -28,6 +32,10 @@ interface BackendCategory {
   updated_at: string;
 }
 
+// Internal cache: frontend product id (string) -> backend category id (number)
+// Populated by getProducts and getProduct so getRelatedProducts can look it up.
+const productCategoryIdMap = new Map<string, number>();
+
 function slugify(text: string): CategorySlug {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") as CategorySlug;
 }
@@ -36,23 +44,25 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
   const stockStatus: Product["stock"] =
     !item.is_available ? "pre-order" : item.stock_quantity > 0 ? "in-stock" : "low-stock";
 
+  productCategoryIdMap.set(String(item.product_id), item.category);
+
   return {
     id: String(item.product_id),
-    slug: `product-${item.product_id}`,
+    slug: String(item.product_id),
     name: item.name,
     brand: item.brand,
     category: slugify(item.category_name),
     price: Number(item.price) || 0,
-    summary: item.name,
+    summary: item.description || item.name,
     tagline: item.category_name,
-    description: item.name,
-    images: item.primary_image ? [item.primary_image] : [],
+    description: item.description,
+    images: item.images?.map((img) => img.image_url) || [],
     rating: 0,
     reviewCount: 0,
     stock: stockStatus,
     stockCount: item.stock_quantity,
     sku: `BT-${item.product_id}`,
-    warranty: "",
+    warranty: item.warranty,
     finishes: [],
     configurations: [],
     highlights: [],
@@ -91,7 +101,16 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
-  return products.find((p) => p.slug === slug);
+  try {
+    const response = await apiFetch<BackendProduct>(`/catalog/products/${slug}/`);
+    if (!response) return undefined;
+    return mapBackendProductToProduct(response);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
@@ -99,7 +118,24 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
-  return products.filter((p) => p.id !== product.id).slice(0, limit);
+  const categoryId = productCategoryIdMap.get(product.id);
+
+  if (categoryId === undefined) {
+    return products.filter((p) => p.id !== product.id).slice(0, limit);
+  }
+
+  const response = await apiFetch<PaginatedResponse<BackendProduct>>(
+    `/catalog/categories/${categoryId}/products/`
+  );
+
+  if (!response || !response.results) {
+    return [];
+  }
+
+  return response.results
+    .map(mapBackendProductToProduct)
+    .filter((p) => p.id !== product.id)
+    .slice(0, limit);
 }
 
 export async function getCategories(): Promise<Category[]> {
