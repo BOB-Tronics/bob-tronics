@@ -142,30 +142,22 @@ export interface Testimonial {
   rating: number;
 }
 
-// ---- Backend auth types (UNVERIFIED: built from OpenAPI schema) ----
+// The account UI uses a separate camel-case User view model above.
+// UNVERIFIED: confirm login and /accounts/me/ against the real backend in-browser.
+export type UserRole = "customer" | "admin" | "super_admin";
 
 export interface BackendUser {
   user_id: number;
+  email: string;
   first_name: string;
   last_name: string;
-  email: string;
+  role: UserRole;
   phone: string;
   residence: string;
-  role: "customer" | "admin" | "super_admin";
   created_at: string;
-  updated_at: string;
 }
 
-export interface BackendUserProfile {
-  user_id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: "customer" | "admin" | "super_admin";
-  phone: string;
-  residence: string;
-  created_at: string;
-}
+export interface BackendUserProfile extends BackendUser {}
 
 export interface TokenResponse {
   access: string;
@@ -173,10 +165,10 @@ export interface TokenResponse {
 }
 
 export interface LoginResponse {
-  user: BackendUserProfile;
+  message: string;
+  user: BackendUser;
   tokens: TokenResponse;
 }
-
 export interface RegisterInput {
   first_name: string;
   last_name: string;
@@ -441,15 +433,17 @@ export interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
-  description: string;
+  // UNVERIFIED: description/warranty/images are admin detail fields beyond the known public list contract.
+  description?: string;
   brand: string;
   price: string;
   stock_quantity: number;
-  warranty: string;
+  warranty?: string;
   is_available: boolean;
-  images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
-  created_at: string;
-  updated_at: string;
+  primary_image?: string | null;
+  images?: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BackendProductImage {

@@ -1,7 +1,6 @@
 // Authentication helper: token storage, login/register/logout, and an
-// authenticated apiFetch that auto-injects "Authorization: Bearer <access>"
-// and retries once via /auth/refresh/ on 401.
-// UNVERIFIED: built from OpenAPI schema; confirm real login flow works.
+// authenticated apiFetch that adds a Bearer token and retries once via refresh.
+// UNVERIFIED: login response is based on the supplied real response; confirm the browser session against the backend.
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type {
@@ -17,10 +16,51 @@ import type {
 
 const ACCESS_TOKEN_KEY = "bobtronics_access_token";
 const REFRESH_TOKEN_KEY = "bobtronics_refresh_token";
+const USER_KEY = "bobtronics_user";
 
 export interface Tokens {
   access: string;
   refresh: string;
+}
+
+type RefreshResponse = {
+  access?: string;
+  refresh?: string;
+  tokens?: {
+    access?: string;
+    refresh?: string;
+  };
+};
+
+function sanitizeErrorBody(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeErrorBody);
+  if (typeof value !== "object" || value === null) return value;
+
+  const safe: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (!/password|token|secret/i.test(key)) {
+      safe[key] = sanitizeErrorBody(item);
+    }
+  }
+  return safe;
+}
+
+function buildAuthHeaders(headers: HeadersInit | undefined, accessToken: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  new Headers(headers).forEach((value, key) => {
+    result[key] = value;
+  });
+  result.Authorization = `Bearer ${accessToken}`;
+  return result;
+}
+
+function logApiFailure(endpoint: string, error: unknown) {
+  const apiError = error instanceof ApiError ? error : null;
+  console.warn("API request failed", {
+    endpoint,
+    status: apiError?.status ?? null,
+    responseBody: sanitizeErrorBody(apiError?.data ?? null),
+  });
 }
 
 export function getStoredTokens(): Tokens | null {
@@ -29,6 +69,23 @@ export function getStoredTokens(): Tokens | null {
   const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
   if (!access || !refresh) return null;
   return { access, refresh };
+}
+
+export function getStoredUser(): BackendUserProfile | null {
+  if (typeof window === "undefined") return null;
+  const user = localStorage.getItem(USER_KEY);
+  if (!user) return null;
+  try {
+    return JSON.parse(user) as BackendUserProfile;
+  } catch {
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
+}
+
+function storeUser(user: BackendUserProfile) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function setTokens(tokens: Tokens) {
@@ -41,6 +98,7 @@ export function clearTokens() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 export function getAccessToken(): string | null {
@@ -52,35 +110,46 @@ export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
 
-// Refresh the access token using the stored refresh token. Returns new tokens
-// or null if refresh fails.
+// UNVERIFIED: refresh accepts { refresh } and may return top-level or nested tokens.
 export async function refreshAccessToken(): Promise<Tokens | null> {
   const stored = getStoredTokens();
   if (!stored) return null;
+
   try {
-    const response = await apiFetch<TokenResponse>("/auth/refresh/", {
+    const response = await apiFetch<RefreshResponse>("/auth/refresh/", {
       method: "POST",
       body: JSON.stringify({ refresh: stored.refresh }),
     });
-    if (response && response.access && response.refresh) {
-      setTokens(response);
-      return response;
-    }
-    return null;
-  } catch {
+    const access = response?.access ?? response?.tokens?.access;
+    if (!access) return null;
+
+    const tokens: Tokens = {
+      access,
+      refresh: response?.refresh ?? response?.tokens?.refresh ?? stored.refresh,
+    };
+    setTokens(tokens);
+    return tokens;
+  } catch (error: unknown) {
+    logApiFailure("/auth/refresh/", error);
     return null;
   }
 }
 
+// UNVERIFIED: backend login response has nested tokens and a user object.
 export async function login(email: string, password: string) {
   const response = await apiFetch<LoginResponse>("/auth/login/", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  if (!response || !response.tokens) {
+  if (!response?.user || !response.tokens?.access || !response.tokens?.refresh) {
     throw new ApiError("Login failed", 400);
   }
-  setTokens(response.tokens);
+
+  setTokens({
+    access: response.tokens.access,
+    refresh: response.tokens.refresh,
+  });
+  storeUser(response.user);
   return response;
 }
 
@@ -92,19 +161,21 @@ export async function register(data: RegisterInput) {
 }
 
 export async function getMe() {
-  return apiFetch<BackendUserProfile>("/accounts/me/");
+  const user = await authApiFetch<BackendUserProfile>("/accounts/me/");
+  if (user) storeUser(user);
+  return user;
 }
 
 export async function logout() {
   const stored = getStoredTokens();
   if (stored) {
     try {
-      await apiFetch<MessageResponse>("/accounts/logout/", {
+      await authApiFetch<MessageResponse>("/accounts/logout/", {
         method: "POST",
         body: JSON.stringify({ refresh: stored.refresh }),
       });
     } catch {
-      // Ignore logout errors; always clear local tokens.
+      // Ignore logout errors; always clear the local session.
     }
   }
   clearTokens();
@@ -146,36 +217,40 @@ async function performRefresh(): Promise<Tokens | null> {
   if (isRefreshing && refreshPromise) return refreshPromise;
   isRefreshing = true;
   refreshPromise = refreshAccessToken();
-  const result = await refreshPromise;
-  isRefreshing = false;
-  refreshPromise = null;
-  return result;
+  try {
+    return await refreshPromise;
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
+  }
 }
 
-// Authenticated fetch: injects Bearer token, retries once on 401 after refresh.
-// On refresh failure clears tokens and redirects to /sign-in.
+// Every browser request through this helper gets the current access token.
 export async function authApiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | null> {
   const token = getAccessToken();
-  const headers: HeadersInit = {
-    ...options.headers,
-  };
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+
+  // Client layouts call this only after checking local storage. Keep server
+  // rendering safe because browser tokens are unavailable during prerendering.
+  if (!token && typeof window === "undefined") {
+    return {} as unknown as T;
+  }
+  if (!token) {
+    throw new ApiError("Authentication required", 401);
   }
 
-  let response: T | null = null;
+  const headers = buildAuthHeaders(options.headers, token);
+
   try {
-    response = await apiFetch<T>(path, { ...options, headers });
-    return response;
-  } catch (error) {
+    return await apiFetch<T>(path, { ...options, headers });
+  } catch (error: unknown) {
+    logApiFailure(path, error);
     if (!(error instanceof ApiError) || error.status !== 401) {
       throw error;
     }
 
-    // 401: try refresh once, then retry the original request.
     const refreshed = await performRefresh();
     if (!refreshed) {
       clearTokens();
@@ -185,13 +260,11 @@ export async function authApiFetch<T>(
       throw new ApiError("Session expired. Please sign in again.", 401);
     }
 
-    const retryHeaders: HeadersInit = {
-      ...options.headers,
-      Authorization: `Bearer ${refreshed.access}`,
-    };
+    const retryHeaders = buildAuthHeaders(options.headers, refreshed.access);
     try {
       return await apiFetch<T>(path, { ...options, headers: retryHeaders });
-    } catch (retryError) {
+    } catch (retryError: unknown) {
+      logApiFailure(path, retryError);
       if (retryError instanceof ApiError && retryError.status === 401) {
         clearTokens();
         if (typeof window !== "undefined") {

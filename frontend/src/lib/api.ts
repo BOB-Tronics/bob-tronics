@@ -1,5 +1,4 @@
-// Single place for backend configuration. Replace the mock services with
-// fetch calls to `${API_URL}/...` when the backend is ready.
+// Single place for backend configuration. API URLs come from NEXT_PUBLIC_API_URL.
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export const USE_MOCK =
@@ -37,15 +36,18 @@ export async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T | null> {
   const url = `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const isFormDataBody =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
-  const headers: HeadersInit = {
+  const headers = new Headers({
     "Content-Type": "application/json",
     Accept: "application/json",
-    ...options.headers,
-  };
+  });
+  new Headers(options.headers).forEach((value, key) => headers.set(key, value));
+  if (isFormDataBody) headers.delete("Content-Type");
 
   const body =
-    options.body && typeof options.body === "object" && !(options.body instanceof FormData)
+    options.body && typeof options.body === "object" && !isFormDataBody
       ? JSON.stringify(options.body)
       : options.body;
 
@@ -62,11 +64,27 @@ export async function apiFetch<T>(
   const responseData = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new ApiError(
-      (responseData as { detail?: string })?.detail ?? response.statusText,
-      response.status,
-      responseData
-    );
+    const data = responseData as {
+      detail?: string | string[];
+      message?: string;
+      error?: {
+        status_code?: number;
+        message?: string;
+        details?: { detail?: string | string[] };
+      };
+    };
+    let message = response.statusText;
+    if (data?.error?.details?.detail) {
+      const d = data.error.details.detail;
+      message = Array.isArray(d) ? d.join(", ") : String(d);
+    } else if (data?.error?.message) {
+      message = data.error.message;
+    } else if (data?.detail) {
+      message = Array.isArray(data.detail) ? data.detail.join(", ") : String(data.detail);
+    } else if (data?.message) {
+      message = data.message;
+    }
+    throw new ApiError(message, response.status, responseData);
   }
 
   return responseData as T;

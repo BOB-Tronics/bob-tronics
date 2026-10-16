@@ -181,13 +181,14 @@ export async function getCategories(): Promise<Category[]> {
     return categories;
   }
 
-  const response = await apiFetch<PaginatedResponse<BackendCategory>>("/catalog/categories/");
+  // Backend returns a plain array [], not a paginated {count, results} object.
+  const response = await apiFetch<BackendCategory[] | PaginatedResponse<BackendCategory>>(
+    "/catalog/categories/"
+  );
 
-  if (!response || !response.results) {
-    return [];
-  }
-
-  return response.results.map(mapBackendCategoryToCategory);
+  if (!response) return [];
+  const results = Array.isArray(response) ? response : response.results ?? [];
+  return results.map(mapBackendCategoryToCategory);
 }
 
 export function getProductSync(id: string): Product | undefined {

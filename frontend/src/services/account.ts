@@ -80,7 +80,7 @@ export async function getCurrentUser(): Promise<User> {
   }
   const profile = await authApiFetch<{ first_name: string; last_name: string; email: string; phone: string }>("/accounts/me/");
   if (!profile) {
-    return currentUser;
+    throw new Error("Failed to load user profile");
   }
   return {
     firstName: profile.first_name,
@@ -131,9 +131,9 @@ export async function getAddresses(): Promise<Address[]> {
   if (useMock()) {
     return addresses;
   }
-  // UNVERIFIED: only GET /customers/address/ exists for the authenticated customer's
-  // single residence/phone. No full address CRUD endpoint -> leaving mock data.
-  return addresses;
+  // No full address CRUD endpoint exists in the backend (only GET /customers/address/
+  // for the authenticated customer's single residence/phone). Return empty when not mock.
+  return [];
 }
 
 export async function getWishlistIds(): Promise<string[]> {
@@ -147,22 +147,24 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
   if (useMock()) {
     return serviceRequests;
   }
-  // UNVERIFIED: customer service requests are at GET /services/ (mapped below in services.ts).
-  return serviceRequests;
+  // Customer service requests are served by GET /services/ in services.ts.
+  // No separate endpoint here; return empty when not mock.
+  return [];
 }
 
 export async function getItServices(): Promise<ItService[]> {
   if (useMock()) {
     return itServices;
   }
-  // UNVERIFIED: IT services catalog is at GET /services/ but returns service requests,
-  // not service catalog items. Keeping mock data for the public IT services page.
-  return itServices;
+  // No backend endpoint for IT services catalog (GET /services/ returns service
+  // requests, not catalog items). Return empty when not mock.
+  return [];
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
   if (useMock()) {
     return testimonials;
   }
-  return testimonials;
+  // No backend endpoint for testimonials. Return empty when not mock.
+  return [];
 }
