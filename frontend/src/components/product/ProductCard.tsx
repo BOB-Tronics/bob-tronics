@@ -16,6 +16,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const wishlist = useWishlist();
   const [added, setAdded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const productImage = product.images[0];
   const href = `/shop/${product.slug}`;
 
   function handleAdd() {
@@ -28,14 +30,18 @@ export default function ProductCard({ product }: { product: Product }) {
     <article className="flex h-full flex-col rounded-2xl border border-line/70 bg-white p-4 shadow-card">
       <div className="relative">
         <Link href={href} className="block overflow-hidden rounded-xl bg-surface">
-          <Image
-            src={product.images[0]}
+          {productImage && !imageFailed ? <Image
+            src={productImage}
             alt={product.name}
             width={600}
             height={600}
+            unoptimized={!productImage.startsWith("/")}
+            onError={() => setImageFailed(true)}
             className="aspect-square w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          />
+          /> : <div role="img" aria-label={`${product.name} image unavailable`} className="flex aspect-square w-full items-center justify-center bg-slate-100 text-slate-400">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>
+          </div>}
         </Link>
         <button
           onClick={() => wishlist.toggle(product.id)}

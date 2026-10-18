@@ -423,7 +423,7 @@ export interface BackendCategory {
   category_id: number;
   name: string;
   description: string;
-  image: string;
+  image: string | null;
   created_at: string;
   updated_at: string;
 }

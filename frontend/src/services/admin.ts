@@ -99,7 +99,7 @@ function jsonBody(data: unknown) {
 }
 
 // ---- Catalog admin ----
-// UNVERIFIED: create payload fields and multipart image field names were not included in the supplied contract.
+// UNVERIFIED: confirm the image endpoint response fields; the backend requires image_url in the create request.
 
 export type CatalogList<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
@@ -168,9 +168,18 @@ export async function adminListImages(params?: { product?: number; is_primary?: 
   return listResults(await authApiFetch<CatalogList<BackendProductImage>>(path));
 }
 
-// UNVERIFIED: multipart fields are assumed to be product, image, and is_primary.
-export async function adminCreateImage(data: FormData) {
-  return authApiFetch<BackendProductImage>("/catalog/admin/images/", { method: "POST", body: data });
+// The backend requires an image_url string; this endpoint does not accept raw file uploads.
+export interface AdminCreateImageInput {
+  product: number;
+  image_url: string;
+  is_primary: boolean;
+}
+
+export async function adminCreateImage(data: AdminCreateImageInput) {
+  return authApiFetch<BackendProductImage>("/catalog/admin/images/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function adminGetImage(imageId: number) {

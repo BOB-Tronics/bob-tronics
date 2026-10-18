@@ -35,6 +35,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - GET /catalog/products/ -> src/services/products.ts getProducts, VERIFIED (200, paginated {"count":0,"results":[]})
 - GET /catalog/products/{id}/ -> src/services/products.ts getProduct, VERIFIED (404 for nonexistent id; getProduct returns undefined)
 - GET /catalog/categories/ -> src/services/products.ts getCategories, VERIFIED (200, PLAIN ARRAY [] â€” NOT paginated; fixed mapper to handle both shapes)
+- Product/category images -> diagnosis: mixed A/C/D/E. Some `primary_image`/`image` values are null (A); product mapping used `images[]` and ignored `primary_image` (E); valid absolute image URLs from `encrypted-tbn0.gstatic.com` and `t4.ftcdn.net` were missing from Next.js `remotePatterns` (C); one product value points to a Google search page returning `200 text/html`, not an image (D). Fixed by mapping `primary_image`, resolving relative URLs from `NEXT_PUBLIC_API_URL`, adding only verified image hosts, and showing placeholders for absent/failed images. Retest after restarting the dev server; replace the Google search URL with a direct image URL in backend data.
 - GET /catalog/categories/{category_id}/products/ -> src/services/products.ts getRelatedProducts, UNVERIFIED (no categories exist to test with)
 - GET /promotions/active/ -> src/services/promotions.ts getActivePromotions, VERIFIED (200, paginated {"count":0,"results":[]})
 - GET /catalog/active/ -> src/services/promotions.ts (fallback), VERIFIED (200, same shape as /promotions/active/)

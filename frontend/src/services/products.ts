@@ -1,4 +1,5 @@
 import { apiFetch, PaginatedResponse, ApiError, useMock } from "@/lib/api";
+import { resolveImageUrl } from "@/lib/resolveImageUrl";
 import { categories, products } from "@/lib/mock-data";
 import type { Category, CategorySlug, Product } from "@/types";
 
@@ -18,7 +19,8 @@ interface BackendProduct {
   stock_quantity: number;
   warranty: string;
   is_available: boolean;
-  images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
+  primary_image?: string | null;
+  images?: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +29,7 @@ interface BackendCategory {
   category_id: number;
   name: string;
   description: string;
-  image: string;
+  image: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +58,11 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
     summary: item.description || item.name,
     tagline: item.category_name,
     description: item.description,
-    images: item.images?.map((img) => img.image_url) || [],
+    images: [
+      item.primary_image,
+      ...(item.images ?? []).filter((img) => img.is_primary).map((img) => img.image_url),
+      ...(item.images ?? []).filter((img) => !img.is_primary).map((img) => img.image_url),
+    ].map(resolveImageUrl).filter(Boolean),
     rating: 0,
     reviewCount: 0,
     stock: stockStatus,
@@ -78,7 +84,7 @@ function mapBackendCategoryToCategory(item: BackendCategory): Category {
     slug: slugify(item.name),
     name: item.name,
     tagline: item.description,
-    image: item.image,
+    image: resolveImageUrl(item.image),
     count: 0,
     subcategories: [],
   };
