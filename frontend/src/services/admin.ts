@@ -9,6 +9,7 @@ import type {
   BackendProduct,
   BackendProductImage,
   BackendService,
+  DiscountInput,
   PatchedAdminServiceUpdate,
   StockAdjustmentInput,
 } from "@/types";
@@ -247,11 +248,12 @@ export async function adminLowStockCount():Promise<number|null>{
 }
 // ---- Discounts admin (main: /promotions/admin/discounts/) ----
 
+// UNVERIFIED: list may be paginated or a plain array; both are handled.
 export async function adminListDiscounts() {
-  return authApiFetch<{ count: number; results: BackendDiscount[] }>("/promotions/admin/discounts/");
+  return listResults(await authApiFetch<CatalogList<BackendDiscount>>("/promotions/admin/discounts/"));
 }
 
-export async function adminCreateDiscount(data: BackendDiscount) {
+export async function adminCreateDiscount(data: DiscountInput) {
   return authApiFetch<BackendDiscount>("/promotions/admin/discounts/", { method: "POST", body: jsonBody(data) });
 }
 
@@ -259,11 +261,11 @@ export async function adminGetDiscount(discountId: number) {
   return authApiFetch<BackendDiscount>(`/promotions/admin/discounts/${discountId}/`);
 }
 
-export async function adminUpdateDiscount(discountId: number, data: BackendDiscount) {
+export async function adminUpdateDiscount(discountId: number, data: DiscountInput) {
   return authApiFetch<BackendDiscount>(`/promotions/admin/discounts/${discountId}/`, { method: "PUT", body: jsonBody(data) });
 }
 
-export async function adminPatchDiscount(discountId: number, data: Partial<BackendDiscount>) {
+export async function adminPatchDiscount(discountId: number, data: Partial<DiscountInput>) {
   return authApiFetch<BackendDiscount>(`/promotions/admin/discounts/${discountId}/`, { method: "PATCH", body: jsonBody(data) });
 }
 

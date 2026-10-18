@@ -1,7 +1,7 @@
 // Checkout service: replaces mock placeOrder with real POST /orders/checkout/.
 // UNVERIFIED: built from OpenAPI schema; confirm OrderCheckout input and Order response.
 import { authApiFetch } from "@/lib/auth";
-import { useMock } from "@/lib/api";
+import { isMockMode } from "@/lib/api";
 import type { CartLine } from "@/lib/cart";
 import type { CustomerDetails } from "@/components/checkout/CustomerDetailsStep";
 import type { DeliveryDetails } from "@/components/checkout/DeliveryStep";
@@ -30,7 +30,7 @@ export async function placeOrderMock(input: PlaceOrderInput): Promise<PlaceOrder
 // The backend only needs shipping_address, phone, and delivery_method; line items
 // come from the authenticated cart.
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
-  if (useMock()) {
+  if (isMockMode()) {
     return placeOrderMock(input);
   }
 

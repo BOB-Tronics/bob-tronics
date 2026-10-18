@@ -12,7 +12,16 @@ import Rating from "@/components/ui/Rating";
 import StockStatus from "./StockStatus";
 import { BagIcon, HeartIcon } from "@/components/ui/Icons";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  onAddToCart,
+  addLabel = "Add to Cart",
+}: {
+  product: Product;
+  // Optional override for the add button (the wishlist uses it to "move to cart").
+  onAddToCart?: (product: Product) => void | Promise<void>;
+  addLabel?: string;
+}) {
   const { addItem } = useCart();
   const wishlist = useWishlist();
   const [added, setAdded] = useState(false);
@@ -20,8 +29,12 @@ export default function ProductCard({ product }: { product: Product }) {
   const productImage = product.images[0];
   const href = `/shop/${product.slug}`;
 
-  function handleAdd() {
-    addItem({ productId: product.id, quantity: 1 });
+  async function handleAdd() {
+    if (onAddToCart) {
+      await onAddToCart(product);
+    } else {
+      addItem({ productId: product.id, quantity: 1 });
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
@@ -51,6 +64,11 @@ export default function ProductCard({ product }: { product: Product }) {
         >
           <HeartIcon size={18} filled={wishlist.has(product.id)} />
         </button>
+        {product.discount && (
+          <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
+            Save {formatPrice(product.discount.savings)}
+          </span>
+        )}
       </div>
 
       <div className="mt-4 flex flex-1 flex-col">
@@ -61,13 +79,24 @@ export default function ProductCard({ product }: { product: Product }) {
           </Link>
         </h3>
         <p className="mt-1 text-sm text-muted">{product.summary}</p>
-        <Rating value={product.rating} count={product.reviewCount} className="mt-2" />
-        <p className="mt-3 text-2xl font-bold text-ink">{formatPrice(product.price)}</p>
+        {product.reviewCount > 0 ? (
+          <Rating value={product.rating} count={product.reviewCount} className="mt-2" />
+        ) : (
+          <p className="mt-2 text-sm text-muted">No reviews yet</p>
+        )}
+        {product.discount ? (
+          <p className="mt-3 text-2xl font-bold text-ink">
+            {formatPrice(product.discount.discountedPrice)}{" "}
+            <span className="text-base font-medium text-muted line-through">{formatPrice(product.price)}</span>
+          </p>
+        ) : (
+          <p className="mt-3 text-2xl font-bold text-ink">{formatPrice(product.price)}</p>
+        )}
         <StockStatus status={product.stock} className="mt-1.5" />
 
         <div className="mt-auto pt-4">
           <Button fullWidth onClick={handleAdd} aria-live="polite">
-            <BagIcon size={18} /> {added ? "Added to cart" : "Add to Cart"}
+            <BagIcon size={18} /> {added ? "Added to cart" : addLabel}
           </Button>
           <div className="mt-3 flex items-center justify-between text-sm font-medium text-primary">
             <Link href={href} className="hover:underline">

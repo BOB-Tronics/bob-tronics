@@ -116,10 +116,20 @@ export async function refreshAccessToken(): Promise<Tokens | null> {
   if (!stored) return null;
 
   try {
-    const response = await apiFetch<RefreshResponse>("/auth/refresh/", {
-      method: "POST",
-      body: JSON.stringify({ refresh: stored.refresh }),
-    });
+    let response: RefreshResponse | null;
+    try {
+      response = await apiFetch<RefreshResponse>("/auth/refresh/", {
+        method: "POST",
+        body: JSON.stringify({ refresh: stored.refresh }),
+      });
+    } catch (error: unknown) {
+      // The backend also exposes /accounts/token/refresh/; use it if the main path is missing.
+      if (!(error instanceof ApiError) || error.status !== 404) throw error;
+      response = await apiFetch<RefreshResponse>("/accounts/token/refresh/", {
+        method: "POST",
+        body: JSON.stringify({ refresh: stored.refresh }),
+      });
+    }
     const access = response?.access ?? response?.tokens?.access;
     if (!access) return null;
 
@@ -188,12 +198,10 @@ export async function activate(data: ActivationInput) {
   });
 }
 
+// UNVERIFIED: GET activation query-parameter names (uid, token) are assumed from the POST body.
 export async function activateFromEmailLink(uid: string, token: string) {
-  return apiFetch<MessageResponse>("/accounts/activate/", {
-    method: "GET",
-    // UNVERIFIED: GET activation query-parameter shape not confirmed; may need
-    // ?uid=...&token=... instead of a body.
-  });
+  const query = new URLSearchParams({ uid, token });
+  return apiFetch<MessageResponse>(`/accounts/activate/?${query.toString()}`, { method: "GET" });
 }
 
 export async function passwordReset(data: PasswordResetInput) {

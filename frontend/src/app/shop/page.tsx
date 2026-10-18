@@ -4,18 +4,23 @@ import Card from "@/components/ui/Card";
 import { ArrowRightIcon, SearchIcon } from "@/components/ui/Icons";
 import PageHeader from "@/components/ui/PageHeader";
 import { getCategories, getProducts } from "@/services/products";
-import type { CategorySlug } from "@/types";
+import { applyPromotions, getActivePromotions } from "@/services/promotions";
 
 export const metadata = { title: "Shop · BOB TRONICS" };
-
-const categorySlugs: CategorySlug[] = ["phones", "laptops", "accessories", "gaming"];
 
 export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
   const params = await searchParams;
   const search = typeof params.q === "string" ? params.q : undefined;
-  const category = categorySlugs.find((slug) => slug === params.category);
 
-  const [categories, products] = await Promise.all([getCategories(), getProducts({ search })]);
+  const [categories, productList, promotions] = await Promise.all([
+    getCategories(),
+    getProducts({ search }),
+    getActivePromotions(),
+  ]);
+  const products = applyPromotions(productList, promotions);
+  // Only accept a category that really exists in the catalogue.
+  const category = categories.find((cat) => cat.slug === params.category)?.slug;
+  const highlighted = products.find((p) => p.discount) ?? products[0];
 
   return (
     <div className="page-container pb-12">
@@ -68,12 +73,14 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
             </div>
           ))}
         </div>
-        <Link
-          href="/shop/macbook-air-13-m3"
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
-        >
-          New: MacBook Air M3 · Explore now <ArrowRightIcon size={16} />
-        </Link>
+        {highlighted && (
+          <Link
+            href={`/shop/${highlighted.slug}`}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
+          >
+            {highlighted.discount ? "Deal" : "New"}: {highlighted.name} · Explore now <ArrowRightIcon size={16} />
+          </Link>
+        )}
       </Card>
 
       <ShopResults

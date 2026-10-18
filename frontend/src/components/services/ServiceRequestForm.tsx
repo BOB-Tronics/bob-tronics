@@ -1,10 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input, { Select } from "@/components/ui/Input";
+import { ApiError } from "@/lib/api";
 import { createService, type ServiceRequest } from "@/services/services";
+
+// Turns a failed POST /services/ into a short message for the form.
+function requestErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status === 401) {
+    return "Please sign in to send a request. Your details will be kept on this page.";
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : "We couldn't submit your request. Please try again.";
+}
 
 const inputClass = "w-full rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
 const buttonClass = "rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50";
@@ -40,18 +52,27 @@ export default function ServiceRequestForm({
   const dateLabel = chosenDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const appointmentLabel = `${dateLabel} · ${appointmentTime}`;
 
+  // Simple form (contact page): the inputs are uncontrolled, so read them from the form itself.
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const fullName = String(data.get("name") ?? "").trim();
+    const contactEmail = String(data.get("email") ?? "").trim();
+    const contactPhone = String(data.get("phone") ?? "").trim();
+    const topic = String(data.get("service") ?? "").trim();
+    const text = String(data.get("message") ?? "").trim();
     setStatus("saving");
+    setSubmitError("");
     void (async () => {
       try {
         await createService({
-          name,
-          description: need,
+          name: fullName,
+          description: `${topic ? `${topic}: ` : ""}${text}\nContact phone: ${contactPhone || "Not provided"}\nContact email: ${contactEmail}`,
           service_type: "other",
         });
-        setStep(4);
-      } catch {
+        setStatus("done");
+      } catch (error) {
+        setSubmitError(requestErrorMessage(error));
         setStatus("idle");
       }
     })();
@@ -79,8 +100,8 @@ export default function ServiceRequestForm({
       setSubmittedRequest(result);
       setStep(4);
       setStatus("idle");
-    } catch {
-      setSubmitError("We couldn't submit your request. Check that you're signed in and try again.");
+    } catch (error) {
+      setSubmitError(requestErrorMessage(error));
       setStatus("idle");
     }
   }
@@ -90,7 +111,7 @@ export default function ServiceRequestForm({
     const selectedName = name.trim();
     if (step === 4) return <div className="auth-background -mx-4 px-4 py-8 sm:-mx-6 sm:px-6"><div className="page-container">
       <div className="mb-6 flex flex-wrap gap-2">{stepLabels.map((label, index) => <span key={label} className={`rounded-lg px-4 py-2.5 text-xs font-semibold ${step === index ? "border border-primary bg-accent text-primary" : "bg-white text-muted"}`}>{label}</span>)}</div>
-      <Card><div className="flex h-11 w-11 items-center justify-center rounded-full border border-success text-success">✓</div><span className="mt-5 inline-flex rounded-full bg-success-bg px-3 py-1 text-xs font-semibold text-success">Request submitted</span><h2 className="mt-5 text-3xl font-bold">Thank you.</h2><p className="mt-4">Your {service} request {submittedRequest?.id} has been submitted. Current status: {submittedRequest?.status}.</p><div className="mt-5 grid gap-4 text-sm sm:grid-cols-3"><div><p className="text-muted">Service</p><p className="mt-2 font-semibold">{service}</p></div><div><p className="text-muted">Preferred appointment</p><p className="mt-2 font-semibold">{appointmentLabel}</p></div><div><p className="text-muted">Location</p><p className="mt-2 font-semibold">{location || "—"}</p></div></div><div className="mt-5 rounded-lg bg-accent p-4"><p className="font-semibold text-primary">What happens next?</p><p className="mt-1 text-sm text-muted">Our team will review the request and follow up using your account details.</p></div><div className="mt-5 flex flex-wrap gap-3"><a href="/account/it-requests" className={buttonClass}>View request in my account</a><a href="/it-services" className={outlineButtonClass}>Back to IT Services</a></div></Card>
+      <Card><div className="flex h-11 w-11 items-center justify-center rounded-full border border-success text-success">✓</div><span className="mt-5 inline-flex rounded-full bg-success-bg px-3 py-1 text-xs font-semibold text-success">Request submitted</span><h2 className="mt-5 text-3xl font-bold">Thank you.</h2><p className="mt-4">Your {service} request {submittedRequest?.id} has been submitted. Current status: {submittedRequest?.status}.</p><div className="mt-5 grid gap-4 text-sm sm:grid-cols-3"><div><p className="text-muted">Service</p><p className="mt-2 font-semibold">{service}</p></div><div><p className="text-muted">Preferred appointment</p><p className="mt-2 font-semibold">{appointmentLabel}</p></div><div><p className="text-muted">Location</p><p className="mt-2 font-semibold">{location || "—"}</p></div></div><div className="mt-5 rounded-lg bg-accent p-4"><p className="font-semibold text-primary">What happens next?</p><p className="mt-1 text-sm text-muted">Our team will review the request and follow up using your account details.</p></div><div className="mt-5 flex flex-wrap gap-3"><Link href="/account/it-requests" className={buttonClass}>View request in my account</Link><Link href="/it-services" className={outlineButtonClass}>Back to IT Services</Link></div></Card>
       <Card className="mt-6"><h2 className="text-lg font-bold">Request summary</h2><p className="mt-4">{need}</p><p className="mt-4 text-sm text-muted">Submitted by {name} · Request #{submittedRequest?.id ?? "—"}</p>{attachment && <p className="mt-3 text-sm text-muted">Attachment selected but not uploaded: {attachment}</p>}</Card>
     </div></div>;
 
@@ -114,6 +135,7 @@ export default function ServiceRequestForm({
       {contactMode ? <Select label="How can we help?" name="service" options={["Product advice", "Order support", "IT services", "Other"].map((s) => ({ value: s, label: s }))} /> : services && <Select label="Service" name="service" options={services.map((s) => ({ value: s, label: s }))} />}
       <div><label htmlFor="message" className="mb-2 block text-sm font-semibold text-ink">{contactMode ? "Message *" : "How can we help?"}</label><textarea id="message" name="message" rows={contactMode ? 5 : 4} required defaultValue={contactMode ? "I’m looking for a laptop for design work. Can your team help me choose the right configuration?" : undefined} className="w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" /></div>
       {contactMode && <><div><label htmlFor="attachment" className="mb-2 block text-sm font-semibold text-ink">Attachment (optional)</label><input id="attachment" name="attachment" type="file" className="w-full rounded-lg border border-line bg-white px-4 py-3 text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-2 file:font-medium file:text-primary" /></div><label className="flex items-center gap-2 text-sm text-ink"><input type="checkbox" required className="accent-primary" /> I agree to the <a href="/about" className="text-primary underline">Privacy Policy</a>.</label></>}
+      {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
       <Button type="submit" size="lg" loading={status === "saving"}>{submitLabel}</Button>{contactMode && <p className="text-xs text-muted">We aim to respond within one business day.</p>}
     </form>
   </Card>;

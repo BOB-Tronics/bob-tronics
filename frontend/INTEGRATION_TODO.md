@@ -149,3 +149,47 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 
 - Stock history table in src/app/operations/inventory/page.tsx -> UNVERIFIED / unavailable (no stock history endpoint supplied; UI reports this rather than showing fabricated movements).
 - Catalog create/edit/delete and image upload UI in src/app/operations/{categories,products}/... -> UNVERIFIED (test with admin account; verify backend validation, permissions, and refresh behavior).
+
+## Integration pass 2026-10-19 (remaining endpoints wired)
+Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{id}/ (detail has description, warranty, images[]), /catalog/products/?search= and ?category= (both filter), /catalog/categories/ (plain array), /catalog/categories/{id}/products/, /promotions/active/ and /reviews/ (both paginated, empty), /promotions/products/{id}/ (has_discount=false shape), /health/ (ok), /deliveries/track/{unknown}/ (404 error envelope).
+
+### Fixed: account pages now really call the backend
+- src/app/account/page.tsx, account/orders/page.tsx, account/orders/[id]/page.tsx, account/[section]/page.tsx, checkout/page.tsx were server components, but authApiFetch returns {} on the server (no browser token), so GET /orders/, /orders/{id}/ and /accounts/me/ never ran. They are now client components with loading/error/empty states.
+- src/services/account.ts maps backend order statuses (pending/confirmed/processing/shipped/delivered/cancelled) onto the UI statuses and builds the timeline from the status. estimatedDelivery, paymentMethod and paymentReference have NO BACKEND SOURCE and render as "to be confirmed"/"—".
+
+### Newly wired endpoints
+- POST /accounts/logout/ -> AccountSidebar "Logout" button and OperationsFrame "Sign out", UNVERIFIED (needs a signed-in session).
+- POST /accounts/activate/ -> src/app/(auth)/activate/page.tsx (reads ?uid=&token= or manual entry), UNVERIFIED (email link format unknown). GET /accounts/activate/ -> activateFromEmailLink now sends ?uid=&token=, UNVERIFIED.
+- POST /accounts/password-reset/ -> src/app/(auth)/forgot-password/page.tsx (linked from the sign-in form), UNVERIFIED.
+- POST /accounts/password-reset/confirm/ -> src/app/(auth)/reset-password/page.tsx (?uid=&token=), UNVERIFIED.
+- POST /accounts/token/refresh/ -> fallback in refreshAccessToken when /auth/refresh/ returns 404, UNVERIFIED.
+- GET /promotions/active/ -> applyPromotions on home, shop and related products (discounted price + "Save" badge on cards), VERIFIED empty list; populated fields UNVERIFIED.
+- GET /promotions/products/{product_id}/ -> product page price block, VERIFIED has_discount=false shape.
+- GET/POST/PATCH/DELETE /promotions/admin/discounts/ -> new src/app/operations/promotions/page.tsx (nav entry "Promotions"), UNVERIFIED (discount_type values assumed "percentage"/"fixed"; dates sent as ISO strings).
+- GET/PATCH/DELETE /catalog/admin/images/ -> src/components/operations/ProductImagesPanel.tsx inside the product edit panel on operations/products, UNVERIFIED (?product= filter assumed; client-side filter as backup).
+- POST /wishlist/items/{product_id}/move-to-cart/ -> useWishlist.moveToCart + "Move to Cart" button on the account wishlist grid, UNVERIFIED.
+- GET /cart/ -> useCart now accepts a plain list or {items|results|cart_items: []}, UNVERIFIED. /cart/clear/ tries DELETE then POST on 405.
+- GET /reviews/ -> home page testimonials (latest 3) and src/components/product/ProductReviews.tsx (per product, ?product= filter + client filter), VERIFIED empty list.
+- POST /reviews/ -> ProductReviews "Write a review" form (now uses authApiFetch, shows sign-in prompt on 401), UNVERIFIED.
+- GET /services/ -> account overview "Your IT request" card and new src/app/account/it-requests/page.tsx, UNVERIFIED.
+- GET /services/{service_id}/ -> new src/app/account/it-requests/[id]/page.tsx, UNVERIFIED.
+- POST /services/ -> contact page form now reads its fields (was sending empty values) and shows the backend error / sign-in hint, UNVERIFIED.
+- POST /orders/{order_id}/cancel/ -> "Cancel order" button on account/orders/[id] (shown for Processing/Packed), UNVERIFIED.
+- GET /deliveries/orders/{order_id}/ -> delivery card on account/orders/[id] (now uses authApiFetch; 404 = no delivery yet), UNVERIFIED.
+- GET /deliveries/track/{tracking_number}/ -> new public src/app/track/page.tsx (sidebar "Track Order" and order page "Track package" link), VERIFIED 404 envelope only.
+- GET /health/ -> OperationsFrame sidebar status card ("All systems operational" / "Backend unreachable"), VERIFIED.
+- GET /accounts/me/ residence/phone -> getAddresses returns the profile residence as the single default address (checkout prefill, addresses section), UNVERIFIED.
+- GET /catalog/categories/ -> Header categories menu (was mock data), VERIFIED.
+
+### Still NO BACKEND ENDPOINT (unchanged, demo state)
+- Profile edit / change password (only GET /accounts/me/ exists), address book CRUD, saved payment methods, support tickets, customer notifications, newsletter, Google sign-in.
+- Operations: payments, deliveries list/courier assignment, reports, notifications, settings, review moderation (publish/hide/reply), stock history, dashboard revenue/sales.
+- IT services catalogue (the three service cards are static copy); order estimated delivery date, payment method/reference; product ratings/review counts on cards (reviews are only loaded per product page).
+- Local (signed-out) cart is not merged into the backend cart on sign-in.
+
+## Images and home page design (2026-10-19)
+- Why uploaded images did not display: the backend only stores an image URL (POST /catalog/admin/images/ with image_url); there is no file upload. Product 4 ("sumsung s26 Ultra") was saved with a Google *search results* link (returns text/html, not an image), so browsers cannot render it. Products 5, 6, 8 and 10 have no image attached at all. Product 9 (gstatic thumbnail) and the category images render fine.
+- Fix: the Add product form and the product image panel now preview the pasted link and warn when it is not an image file. Use "Copy image address" on the picture itself (link ends in .jpg/.png/.webp).
+- Home page background: /images/background.png is the Figma node 1667-197 (1280 x 3466). It was shown with cover + fixed, so only its flat top strip was visible; it now spans the page width and scrolls with the page, and the home wrapper tint was removed.
+- Category cards fall back to the bundled photos for phones/laptops/accessories/gaming when the backend category has no image; taglines are clamped to two lines.
+- IT services block is static site content (src/lib/it-services.ts) rendered inside a white panel as in the design.

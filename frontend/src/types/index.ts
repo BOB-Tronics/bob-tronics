@@ -29,6 +29,15 @@ export interface Faq {
   answer: string;
 }
 
+// Active promotion applied to a product (from /promotions/active/ or /promotions/products/{id}/).
+export interface ProductDiscount {
+  discountedPrice: number;
+  savings: number;
+  discountType: string;
+  discountValue: number;
+  endDate: string | null;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -36,6 +45,7 @@ export interface Product {
   brand: string;
   category: CategorySlug;
   price: number;
+  discount?: ProductDiscount;
   summary: string;
   tagline: string;
   description: string;
@@ -100,6 +110,10 @@ export interface Order {
   paymentMethod: string;
   paymentReference: string;
   timeline: TimelineStep[];
+  // Raw backend values shown on the order detail page.
+  shippingAddress?: string;
+  phone?: string;
+  rawStatus?: string;
 }
 
 export interface Address {
@@ -123,9 +137,13 @@ export interface User {
 export interface ServiceRequest {
   id: string;
   service: string;
-  status: "Scheduled" | "Completed" | "Pending";
+  status: string;
   date: string;
   location: string;
+  description?: string;
+  serviceType?: string;
+  estimatedCost?: string | null;
+  finalCost?: string | null;
 }
 
 export interface ItService {
@@ -157,7 +175,7 @@ export interface BackendUser {
   created_at: string;
 }
 
-export interface BackendUserProfile extends BackendUser {}
+export type BackendUserProfile = BackendUser;
 
 export interface TokenResponse {
   access: string;
@@ -464,6 +482,17 @@ export interface BackendDiscount {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Body for creating/updating a discount via /promotions/admin/discounts/.
+// UNVERIFIED: discount_type values assumed to be "percentage" | "fixed".
+export interface DiscountInput {
+  product: number;
+  discount_type: string;
+  discount_value: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
 }
 
 export interface StockAdjustmentInput {

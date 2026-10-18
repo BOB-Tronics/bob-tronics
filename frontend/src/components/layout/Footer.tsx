@@ -69,7 +69,7 @@ export default function Footer() {
             <p className="text-2xl font-extrabold tracking-tight">BOB TRONICS</p>
             <p className="mt-4 text-white/80">Your next upgrade. Your trusted technology partner.</p>
             <p className="mt-3 text-xs text-white/60">
-              Illustrative demo store Â· Contact details are examples.
+              Illustrative demo store · Contact details are examples.
             </p>
           </div>
           {footerColumns.map((column) => (
@@ -88,8 +88,8 @@ export default function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
-          <p>Â© 2026 BOB TRONICS. Demo design.</p>
-          <p>Mobile Money Â· Visa Â· Mastercard Â· Secure checkout</p>
+          <p>© 2026 BOB TRONICS. Demo design.</p>
+          <p>Mobile Money · Visa · Mastercard · Secure checkout</p>
         </div>
       </div>
     </footer>

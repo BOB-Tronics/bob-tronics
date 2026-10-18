@@ -1,4 +1,4 @@
-import { apiFetch, PaginatedResponse, ApiError, useMock } from "@/lib/api";
+import { apiFetch, PaginatedResponse, ApiError, isMockMode } from "@/lib/api";
 import { resolveImageUrl } from "@/lib/resolveImageUrl";
 import { categories, products } from "@/lib/mock-data";
 import type { Category, CategorySlug, Product } from "@/types";
@@ -55,7 +55,8 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
     brand: item.brand,
     category: slugify(item.category_name),
     price: Number(item.price) || 0,
-    summary: item.description || item.name,
+    // The list endpoint has no description, so the card line falls back to the category.
+    summary: item.description || item.category_name,
     tagline: item.category_name,
     description: item.description,
     images: [
@@ -92,7 +93,7 @@ function mapBackendCategoryToCategory(item: BackendCategory): Category {
 
 // Replace the bodies of these functions with fetch calls when the backend exists.
 export async function getProducts(filters: ProductFilters = {}): Promise<Product[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     let result = products;
     if (filters.category) {
       result = result.filter((p) => p.category === filters.category);
@@ -124,7 +125,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
-  if (useMock()) {
+  if (isMockMode()) {
     return getProductSync(slug);
   }
 
@@ -141,7 +142,7 @@ export async function getProduct(slug: string): Promise<Product | undefined> {
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return products.filter((p) => ids.includes(p.id));
   }
 
@@ -158,7 +159,7 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, limit);
   }
 
@@ -183,7 +184,7 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return categories;
   }
 

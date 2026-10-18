@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { categories } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { getCategories } from "@/services/products";
+import type { Category } from "@/types";
 import { useCart } from "@/hooks/useCart";
 import Button from "@/components/ui/Button";
 import {
@@ -31,6 +32,22 @@ export default function Header() {
   const { totalQuantity } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  // Categories come from GET /catalog/categories/ (empty until loaded or if the backend is down).
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((list) => {
+        if (!cancelled) setCategories(list);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (pathname === "/sign-in" || pathname === "/sign-up") return null;
 
@@ -51,7 +68,7 @@ export default function Header() {
       <div className="bg-navy text-xs text-white/80">
         <div className="page-container flex h-9 items-center justify-between">
           <p>Genuine tech. Expert support. Delivered.</p>
-          <p className="hidden sm:block">Kigali delivery from RWF 80 Â· Demo store</p>
+          <p className="hidden sm:block">Kigali delivery from RWF 80 · Demo store</p>
         </div>
       </div>
 
@@ -86,7 +103,7 @@ export default function Header() {
             >
               Categories <ChevronDownIcon size={16} />
             </button>
-            {categoriesOpen && <CategoriesMenu onNavigate={closeMenus} />}
+            {categoriesOpen && <CategoriesMenu categories={categories} onNavigate={closeMenus} />}
           </div>
           {navLinks.slice(2).map((link) => (
             <NavLink key={link.href} {...link} active={isActive(link.href)} />
@@ -125,7 +142,7 @@ export default function Header() {
         </div>
       </div>
 
-      {menuOpen && <MobileMenu isActive={isActive} onNavigate={closeMenus} />}
+      {menuOpen && <MobileMenu categories={categories} isActive={isActive} onNavigate={closeMenus} />}
     </header>
   );
 }
@@ -143,7 +160,7 @@ function NavLink({ label, href, active }: { label: string; href: string; active:
   );
 }
 
-function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
+function CategoriesMenu({ categories, onNavigate }: { categories: Category[]; onNavigate: () => void }) {
   return (
     <div className="absolute left-1/2 top-full w-[760px] -translate-x-1/2 pt-3" onClick={onNavigate}>
       <div className="rounded-2xl border border-line bg-white p-6 shadow-card">
@@ -175,14 +192,14 @@ function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
           href="/shop/macbook-air-13-m3"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
         >
-          New: MacBook Air M3 Â· Explore now <ArrowRightIcon size={16} />
+          New: MacBook Air M3 · Explore now <ArrowRightIcon size={16} />
         </Link>
       </div>
     </div>
   );
 }
 
-function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => boolean; onNavigate: () => void }) {
+function MobileMenu({ categories, isActive, onNavigate }: { categories: Category[]; isActive: (href: string) => boolean; onNavigate: () => void }) {
   return (
     <div className="border-t border-line bg-white lg:hidden" onClick={onNavigate}>
       <nav className="page-container flex flex-col py-3" aria-label="Mobile">

@@ -1,7 +1,11 @@
-// Account service: real backend calls with mock fallback via NEXT_PUBLIC_USE_MOCK.
-// UNVERIFIED: built from OpenAPI schema; confirm field mappings.
+// Account service: orders, profile, addresses and the small lists the account pages need.
+// Everything here needs a signed-in customer, so it must be called from client components
+// (the browser holds the tokens; see authApiFetch).
+// UNVERIFIED: order field names/status values are built from docs; confirm with a real order.
 import { authApiFetch } from "@/lib/auth";
-import { useMock } from "@/lib/api";
+import { isMockMode } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import { itServiceCatalogue } from "@/lib/it-services";
 import {
   addresses,
   currentUser,
@@ -10,76 +14,118 @@ import {
   serviceRequests,
   testimonials,
 } from "@/lib/mock-data";
+import { getReviews } from "@/services/reviews";
+import { getServices } from "@/services/services";
 import type {
   Address,
   BackendOrder,
   BackendOrderList,
+  BackendUserProfile,
   ItService,
   Order,
+  OrderStatus,
   ServiceRequest,
   Testimonial,
+  TimelineStep,
   User,
 } from "@/types";
 
+// Backend statuses (pending, confirmed, processing, shipped, delivered, cancelled)
+// mapped onto the five statuses the account UI knows how to display.
+export function toOrderStatus(status: string | undefined, display?: string): OrderStatus {
+  const value = `${status ?? ""} ${display ?? ""}`.toLowerCase();
+  if (value.includes("cancel")) return "Cancelled";
+  if (value.includes("out for") || value.includes("ship") || value.includes("transit")) return "Out for delivery";
+  if (value.includes("deliver")) return "Delivered";
+  if (value.includes("pack") || value.includes("ready")) return "Packed";
+  return "Processing";
+}
+
+const timelineSteps: { title: OrderStatus; note: string }[] = [
+  { title: "Processing", note: "Order received and being prepared" },
+  { title: "Packed", note: "Order packed and awaiting courier" },
+  { title: "Out for delivery", note: "Courier is on the way" },
+  { title: "Delivered", note: "Order delivered" },
+];
+
+function buildTimeline(status: OrderStatus, createdAt: string, updatedAt: string): TimelineStep[] {
+  if (status === "Cancelled") {
+    return [{ title: "Cancelled", time: formatDate(updatedAt || createdAt), note: "This order was cancelled", state: "current" }];
+  }
+  const current = timelineSteps.findIndex((step) => step.title === status);
+  return timelineSteps.map((step, index) => ({
+    title: step.title,
+    time: index < current ? formatDate(createdAt) : index === current ? formatDate(updatedAt || createdAt) : "Pending",
+    note: step.note,
+    state: index < current ? "done" : index === current ? "current" : "pending",
+  }));
+}
+
 function mapBackendOrderToOrder(item: BackendOrderList): Order {
+  const status = toOrderStatus(item.status, item.status_display);
   return {
     id: String(item.order_id),
-    date: item.order_date,
-    placedAt: item.order_date,
-    estimatedDelivery: item.created_at,
-    status: (item.status_display || item.status) as Order["status"],
+    date: item.order_date || item.created_at,
+    placedAt: item.order_date || item.created_at,
+    estimatedDelivery: "",
+    status,
+    rawStatus: item.status_display || item.status,
     paymentStatus: "Paid",
     items: [],
     subtotal: Number(item.total_amount) || 0,
     delivery: 0,
     discount: 0,
     total: Number(item.total_amount) || 0,
-    deliveryMethod: "Standard Delivery",
-    paymentMethod: "MTN MoMo",
+    deliveryMethod: "",
+    paymentMethod: "",
     paymentReference: "",
-    timeline: [
-      { title: "Confirmed", time: item.created_at, note: "Order confirmed", state: "done" },
-      { title: "Processing", time: item.created_at, note: "Order being processed", state: "pending" },
-      { title: "Packed", time: item.created_at, note: "Awaiting packing", state: "pending" },
-      { title: "Out for Delivery", time: item.created_at, note: "Awaiting dispatch", state: "pending" },
-      { title: "Delivered", time: item.created_at, note: "Not yet delivered", state: "pending" },
-    ],
+    shippingAddress: item.shipping_address,
+    phone: item.phone,
+    timeline: buildTimeline(status, item.created_at, item.created_at),
   };
 }
 
 function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
+  const status = toOrderStatus(item.status, item.status_display);
+  const items = (item.items ?? []).map((line) => ({
+    productId: String(line.product?.product_id ?? ""),
+    name: line.product?.name ?? "Product",
+    variant: line.product?.category_name ?? "",
+    quantity: line.quantity,
+    price: Number(line.unit_price) || 0,
+    image: "",
+  }));
+  const discount = (item.items ?? []).reduce((sum, line) => sum + (Number(line.discount_amount) || 0), 0);
+  const subtotal = (item.items ?? []).reduce((sum, line) => sum + (Number(line.subtotal) || 0), 0);
+  const total = Number(item.total_amount) || 0;
   return {
     id: String(item.order_id),
-    date: item.order_date,
-    placedAt: item.order_date,
-    estimatedDelivery: item.created_at,
-    status: (item.status_display || item.status) as Order["status"],
+    date: item.order_date || item.created_at,
+    placedAt: item.order_date || item.created_at,
+    estimatedDelivery: "",
+    status,
+    rawStatus: item.status_display || item.status,
     paymentStatus: "Paid",
-    items: item.items.map((i) => ({
-      productId: String(i.product.product_id),
-      name: i.product.name,
-      variant: i.product.category_name,
-      quantity: i.quantity,
-      price: Number(i.unit_price) || 0,
-      image: "",
-    })),
-    subtotal: Number(item.total_amount) || 0,
-    delivery: 0,
-    discount: 0,
-    total: Number(item.total_amount) || 0,
-    deliveryMethod: item.delivery,
+    items,
+    subtotal: subtotal || total,
+    delivery: Math.max(0, total - (subtotal || total)),
+    discount,
+    total,
+    deliveryMethod: typeof item.delivery === "string" ? item.delivery : "",
     paymentMethod: "",
     paymentReference: "",
-    timeline: [],
+    shippingAddress: item.shipping_address,
+    phone: item.phone,
+    timeline: buildTimeline(status, item.created_at, item.updated_at),
   };
 }
 
 export async function getCurrentUser(): Promise<User> {
-  if (useMock()) {
+  if (isMockMode()) {
     return currentUser;
   }
-  const profile = await authApiFetch<{ first_name: string; last_name: string; email: string; phone: string }>("/accounts/me/");
-  if (!profile) {
+  const profile = await authApiFetch<BackendUserProfile>("/accounts/me/");
+  if (!profile || !profile.email) {
     throw new Error("Failed to load user profile");
   }
   return {
@@ -90,81 +136,103 @@ export async function getCurrentUser(): Promise<User> {
   };
 }
 
+type OrderList = BackendOrderList[] | { count: number; results: BackendOrderList[] };
+
 export async function getOrders(): Promise<Order[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return orders;
   }
-  const response = await authApiFetch<{ count: number; results: BackendOrderList[] }>("/orders/");
-  if (!response || !response.results) return [];
-  return response.results.map(mapBackendOrderToOrder);
+  const response = await authApiFetch<OrderList>("/orders/");
+  if (!response) return [];
+  const results = Array.isArray(response) ? response : response.results ?? [];
+  return results.map(mapBackendOrderToOrder);
 }
 
 export async function getOrder(id: string): Promise<Order | undefined> {
-  if (useMock()) {
+  if (isMockMode()) {
     return orders.find((o) => o.id === id);
   }
-  try {
-    const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/`);
-    if (!response) return undefined;
-    return mapBackendOrderDetailToOrder(response);
-  } catch {
-    return undefined;
-  }
+  const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/`);
+  if (!response || !response.order_id) return undefined;
+  return mapBackendOrderDetailToOrder(response);
 }
 
+// Throws ApiError so the order page can show why a cancellation was refused.
 export async function cancelOrder(id: string): Promise<Order | undefined> {
-  if (useMock()) {
+  if (isMockMode()) {
     return undefined;
   }
-  try {
-    const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/cancel/`, {
-      method: "POST",
-    });
-    if (!response) return undefined;
-    return mapBackendOrderDetailToOrder(response);
-  } catch {
-    return undefined;
-  }
+  const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/cancel/`, {
+    method: "POST",
+  });
+  if (!response || !response.order_id) return undefined;
+  return mapBackendOrderDetailToOrder(response);
 }
 
+// The backend has no address book; the only saved address is the residence and phone
+// on the customer's profile (GET /accounts/me/), shown as the default address.
 export async function getAddresses(): Promise<Address[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return addresses;
   }
-  // No full address CRUD endpoint exists in the backend (only GET /customers/address/
-  // for the authenticated customer's single residence/phone). Return empty when not mock.
-  return [];
+  const profile = await authApiFetch<BackendUserProfile>("/accounts/me/");
+  if (!profile || !profile.email || !profile.residence) return [];
+  return [
+    {
+      id: "profile",
+      label: "Home",
+      recipient: `${profile.first_name} ${profile.last_name}`.trim(),
+      street: profile.residence,
+      city: "",
+      code: "",
+      phone: profile.phone ?? "",
+      isDefault: true,
+    },
+  ];
 }
 
 export async function getWishlistIds(): Promise<string[]> {
-  if (useMock()) {
-    return serviceRequests.length > 0 ? [] : [];
+  if (isMockMode()) {
+    return [];
   }
+  // The live wishlist is kept in the useWishlist hook; this stays for the mock path only.
   return [];
 }
 
+// Customer service requests come from GET /services/ (login required).
 export async function getServiceRequests(): Promise<ServiceRequest[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return serviceRequests;
   }
-  // Customer service requests are served by GET /services/ in services.ts.
-  // No separate endpoint here; return empty when not mock.
-  return [];
+  return getServices();
 }
 
+// The services on offer are site content (see src/lib/it-services.ts); there is no
+// backend endpoint for them, only for customer requests.
 export async function getItServices(): Promise<ItService[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return itServices;
   }
-  // No backend endpoint for IT services catalog (GET /services/ returns service
-  // requests, not catalog items). Return empty when not mock.
-  return [];
+  return itServiceCatalogue;
 }
 
+// Home page testimonials are the latest public reviews (GET /reviews/).
 export async function getTestimonials(): Promise<Testimonial[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return testimonials;
   }
-  // No backend endpoint for testimonials. Return empty when not mock.
-  return [];
+  try {
+    const reviews = await getReviews();
+    return reviews
+      .filter((review) => review.text !== "—")
+      .slice(0, 3)
+      .map((review) => ({
+        id: review.id,
+        author: review.author,
+        text: review.text,
+        rating: review.rating ?? 5,
+      }));
+  } catch {
+    return [];
+  }
 }

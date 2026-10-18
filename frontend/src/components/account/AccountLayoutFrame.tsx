@@ -8,6 +8,7 @@ import type { User } from "@/types";
 
 const sectionTitles: Record<string, string> = {
   orders: "Orders",
+  "it-requests": "IT Requests",
   wishlist: "Wishlist",
   addresses: "Addresses",
   payments: "Payments",
@@ -22,8 +23,10 @@ export default function AccountLayoutFrame({ user, children }: { user: User; chi
   const title = parts.length === 1
     ? `Welcome back, ${user.firstName}.`
     : parts[1] === "orders" && parts[2]
-      ? `Order ${parts[2]}`
-      : sectionTitles[parts[1]] ?? "My account";
+      ? `Order #${parts[2]}`
+      : parts[1] === "it-requests" && parts[2]
+        ? `IT request #${parts[2]}`
+        : sectionTitles[parts[1]] ?? "My account";
 
   return <div className="page-container pb-12">
     <PageHeader crumbs={[{ label: "Home", href: "/" }, { label: "My account", href: "/account" }]} title={title} subtitle="Your technology, orders and support in one place." />

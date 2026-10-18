@@ -9,10 +9,11 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 
 export default function WishlistGrid() {
-  const { ids } = useWishlist();
+  const { ids, moveToCart } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +31,16 @@ export default function WishlistGrid() {
       cancelled = true;
     };
   }, [ids]);
+
+  // POST /wishlist/items/{product_id}/move-to-cart/ when signed in.
+  async function handleMoveToCart(product: Product) {
+    setMoveError("");
+    try {
+      await moveToCart(product.id);
+    } catch (err) {
+      setMoveError(err instanceof Error ? err.message : "We could not move that product to your cart.");
+    }
+  }
 
   if (loading) {
     return <p className="rounded-2xl border border-line bg-white p-6 text-muted">Loading your wishlist...</p>;
@@ -57,7 +68,8 @@ export default function WishlistGrid() {
         </p>
         <p className="mt-1 text-muted">Move an item to your cart whenever you&apos;re ready.</p>
       </div>
-      <ProductGrid products={products} columns={3} />
+      {moveError && <p role="alert" className="text-sm text-red-600">{moveError}</p>}
+      <ProductGrid products={products} columns={3} onAddToCart={handleMoveToCart} addLabel="Move to Cart" />
       <Button variant="secondary" href="/shop">
         Continue shopping
       </Button>

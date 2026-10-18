@@ -147,6 +147,11 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
           <div className="relative"><label htmlFor="auth-password" className="sr-only">Password</label><input id="auth-password" name="password" type={passwordVisible ? "text" : "password"} autoComplete={isSignIn ? "current-password" : "new-password"} minLength={8} required placeholder="Enter password" className="h-12 w-full rounded-full border-0 bg-[#F0F0F0] px-4 pr-12 text-sm text-ink placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary" /><button type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} className="absolute inset-y-0 right-3 flex items-center text-[#414963] hover:text-primary"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{passwordVisible ? <><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.2-1 2.4-2 3.4" /><path d="M6.2 6.2C4 7.5 2.5 9.7 2 12c.7 2.5 4 7 10 7 1.1 0 2.1-.2 3-.5" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}</svg></button>
             {fieldErrors.password && <p role="status" className="text-xs text-red-600">{fieldErrors.password}</p>}
           </div>
+          {isSignIn && (
+            <p className="text-right text-xs">
+              <Link href="/forgot-password" className="font-semibold text-[#414963] hover:text-primary hover:underline">Forgot password?</Link>
+            </p>
+          )}
           {!isSignIn && (
             <div>
               <label htmlFor="auth-password-confirm" className="sr-only">Confirm password</label>

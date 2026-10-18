@@ -62,13 +62,18 @@ export default function CartView({ products }: { products: Product[] }) {
             {lines.map(({ item, product, lineTotal }) => (
               <li key={product.id} className="flex flex-col gap-4 py-5 first:pt-0 last:pb-0 sm:flex-row">
                 <Link href={`/shop/${product.slug}`} className="shrink-0">
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    width={260}
-                    height={220}
-                    className="h-44 w-full rounded-xl object-cover sm:h-40 sm:w-56"
-                  />
+                  {product.images[0] ? (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      width={260}
+                      height={220}
+                      unoptimized={!product.images[0].startsWith("/")}
+                      className="h-44 w-full rounded-xl object-cover sm:h-40 sm:w-56"
+                    />
+                  ) : (
+                    <div aria-hidden="true" className="h-44 w-full rounded-xl bg-surface sm:h-40 sm:w-56" />
+                  )}
                 </Link>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-ink">
