@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import OperationsShell from "@/components/operations/OperationsShell";
+import DemoDataBadge from "@/components/operations/DemoDataBadge";
 
 const reportTabs = ["Sales", "Revenue", "Orders", "Inventory", "Product performance"];
 const metrics = [
@@ -34,7 +35,7 @@ export default function OperationsReportsPage() {
 
   return <OperationsShell active="Reports">
     <p className="text-[10px] font-bold uppercase text-indigo-800">Operations / Reports</p>
-    <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Reports</h1>
+    <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Reports</h1><DemoDataBadge />
     <p className="mt-2 text-sm text-slate-500">Turn your operations into actionable insights.</p>
 
     <div className="mt-6 flex flex-wrap items-end gap-3">

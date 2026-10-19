@@ -139,8 +139,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       await cart.reload();
       return;
     }
-    cart.addItem({ productId, quantity: 1 });
-    setIds((current) => current.filter((id) => id !== productId));
+    if (await cart.addItem({ productId, quantity: 1 })) {
+      setIds((current) => current.filter((id) => id !== productId));
+    }
   }
 
   return (

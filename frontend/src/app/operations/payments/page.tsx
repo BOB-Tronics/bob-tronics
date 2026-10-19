@@ -1,5 +1,6 @@
 ﻿"use client";
 import Link from "next/link";
+import DemoDataBadge from "@/components/operations/DemoDataBadge";
 
 import { useMemo, useState } from "react";
 
@@ -119,7 +120,7 @@ export default function OperationsPaymentsPage() {
         <main className="min-h-[calc(100vh-70px)] bg-[linear-gradient(135deg,#e0e5fa_0%,#edf0ff_45%,#dfe5fa_100%)] px-4 py-7 sm:px-7 lg:px-8">
           <div className="mx-auto max-w-[1500px]">
             <p className="text-[10px] font-bold uppercase text-indigo-800">Operations / Payments</p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Payments</h1>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Payments</h1><DemoDataBadge />
             <p className="mt-2 text-sm text-slate-500">Track transactions, settlements and payment exceptions.</p>
 
             <div className="mt-6 flex flex-wrap items-end gap-3">

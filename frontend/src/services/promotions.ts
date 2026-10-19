@@ -45,11 +45,14 @@ export interface Promotion {
   isActive: boolean;
 }
 
-type PromotionList = BackendActivePromotion[] | { count: number; results: BackendActivePromotion[] };
+type PromotionList = BackendActivePromotion[] | { count?: number; results?: BackendActivePromotion[]; data?: BackendActivePromotion[] | { results?: BackendActivePromotion[] } };
 
 function listResults(response: PromotionList | null): BackendActivePromotion[] {
   if (!response) return [];
-  return Array.isArray(response) ? response : response.results ?? [];
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.results)) return response.results;
+  if (Array.isArray(response.data)) return response.data;
+  return response.data?.results ?? [];
 }
 
 export async function getActivePromotions(): Promise<Promotion[]> {
@@ -76,9 +79,14 @@ export async function getProductDiscount(productId: string | number): Promise<Ba
     return null;
   }
   try {
-    return await apiFetch<BackendProductDiscountDetail>(
+    const response = await apiFetch<BackendProductDiscountDetail | { data?: BackendProductDiscountDetail }>(
       `/promotions/products/${productId}/`
     );
+    if (!response) return null;
+    if (Object.prototype.hasOwnProperty.call(response, "data")) {
+      return (response as { data?: BackendProductDiscountDetail }).data ?? null;
+    }
+    return response as BackendProductDiscountDetail;
   } catch {
     return null;
   }

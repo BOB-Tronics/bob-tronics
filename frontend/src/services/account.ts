@@ -67,18 +67,19 @@ function mapBackendOrderToOrder(item: BackendOrderList): Order {
     id: String(item.order_id),
     date: item.order_date || item.created_at,
     placedAt: item.order_date || item.created_at,
-    estimatedDelivery: "",
+    estimatedDelivery: item.estimated_delivery ?? "",
     status,
     rawStatus: item.status_display || item.status,
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status ?? "—",
     items: [],
     subtotal: Number(item.total_amount) || 0,
     delivery: 0,
     discount: 0,
     total: Number(item.total_amount) || 0,
-    deliveryMethod: "",
-    paymentMethod: "",
-    paymentReference: "",
+    deliveryMethod: item.delivery_status ?? "—",
+    paymentMethod: item.payment_method ?? "—",
+    paymentReference: item.payment_reference ?? "—",
+    deliveryStatus: item.delivery_status ?? "—",
     shippingAddress: item.shipping_address,
     phone: item.phone,
     timeline: buildTimeline(status, item.created_at, item.created_at),
@@ -102,18 +103,19 @@ function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
     id: String(item.order_id),
     date: item.order_date || item.created_at,
     placedAt: item.order_date || item.created_at,
-    estimatedDelivery: "",
+    estimatedDelivery: item.estimated_delivery ?? "",
     status,
     rawStatus: item.status_display || item.status,
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status ?? "—",
     items,
     subtotal: subtotal || total,
     delivery: Math.max(0, total - (subtotal || total)),
     discount,
     total,
-    deliveryMethod: typeof item.delivery === "string" ? item.delivery : "",
-    paymentMethod: "",
-    paymentReference: "",
+    deliveryMethod: typeof item.delivery === "string" ? item.delivery : "—",
+    paymentMethod: item.payment_method ?? "—",
+    paymentReference: item.payment_reference ?? "—",
+    deliveryStatus: item.delivery_status ?? "—",
     shippingAddress: item.shipping_address,
     phone: item.phone,
     timeline: buildTimeline(status, item.created_at, item.updated_at),
@@ -133,28 +135,49 @@ export async function getCurrentUser(): Promise<User> {
     lastName: profile.last_name,
     email: profile.email,
     phone: profile.phone,
+    residence: profile.residence,
   };
 }
 
-type OrderList = BackendOrderList[] | { count: number; results: BackendOrderList[] };
+// UNVERIFIED: profile PATCH contract is user supplied; do not live-test against an existing account.
+export async function updateProfile(input: Pick<BackendUserProfile, "first_name" | "last_name" | "phone" | "residence">) {
+  return authApiFetch<BackendUserProfile>("/accounts/me/", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// UNVERIFIED: password change contract is user supplied; never log or persist password values.
+export async function changePassword(input: { current_password: string; new_password: string; password_confirm: string }) {
+  return authApiFetch<{ success?: boolean; message?: string }>("/accounts/change-password/", { method: "POST", body: JSON.stringify(input) });
+}
+
+function orderListItems(payload: unknown): BackendOrderList[] {
+  if (Array.isArray(payload)) return payload as BackendOrderList[];
+  if (!payload || typeof payload !== "object") return [];
+  const outer = payload as { results?: unknown; data?: unknown };
+  if (Array.isArray(outer.results)) return outer.results as BackendOrderList[];
+  if (Array.isArray(outer.data)) return outer.data as BackendOrderList[];
+  if (outer.data && typeof outer.data === "object") {
+    const nested = outer.data as { results?: unknown };
+    if (Array.isArray(nested.results)) return nested.results as BackendOrderList[];
+  }
+  return [];
+}
 
 export async function getOrders(): Promise<Order[]> {
   if (isMockMode()) {
     return orders;
   }
-  const response = await authApiFetch<OrderList>("/orders/");
-  if (!response) return [];
-  const results = Array.isArray(response) ? response : response.results ?? [];
-  return results.map(mapBackendOrderToOrder);
+  const response = await authApiFetch<unknown>("/orders/");
+  return orderListItems(response).map(mapBackendOrderToOrder);
 }
 
 export async function getOrder(id: string): Promise<Order | undefined> {
   if (isMockMode()) {
     return orders.find((o) => o.id === id);
   }
-  const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/`);
-  if (!response || !response.order_id) return undefined;
-  return mapBackendOrderDetailToOrder(response);
+  const response = await authApiFetch<BackendOrder | { success: boolean; data: BackendOrder }>(`/orders/${Number(id)}/`);
+  const detail = response && "data" in response ? response.data : response;
+  if (!detail || !detail.order_id) return undefined;
+  return mapBackendOrderDetailToOrder(detail);
 }
 
 // Throws ApiError so the order page can show why a cancellation was refused.

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import AccountNotifications from "@/components/account/AccountNotifications";
 import AccountSupport from "@/components/account/AccountSupport";
 import AccountPayments from "@/components/account/AccountPayments";
-import AccountProfile from "@/components/account/AccountProfile";
+import AccountProfile from "@/components/account/AccountProfileForm";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import { getAddresses, getCurrentUser, getOrders } from "@/services/account";

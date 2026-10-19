@@ -22,7 +22,7 @@ export default function ProductCard({
   onAddToCart?: (product: Product) => void | Promise<void>;
   addLabel?: string;
 }) {
-  const { addItem } = useCart();
+  const { addItem, cartError, cartErrorProductId } = useCart();
   const wishlist = useWishlist();
   const [added, setAdded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -33,7 +33,7 @@ export default function ProductCard({
     if (onAddToCart) {
       await onAddToCart(product);
     } else {
-      addItem({ productId: product.id, quantity: 1 });
+      if (!(await addItem({ productId: product.id, quantity: 1 }))) return;
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -98,6 +98,7 @@ export default function ProductCard({
           <Button fullWidth onClick={handleAdd} aria-live="polite">
             <BagIcon size={18} /> {added ? "Added to cart" : addLabel}
           </Button>
+          {cartErrorProductId === product.id && cartError && <p role="alert" className="mt-2 text-sm text-red-600">{cartError}</p>}
           <div className="mt-3 flex items-center justify-between text-sm font-medium text-primary">
             <Link href={href} className="hover:underline">
               Quick View

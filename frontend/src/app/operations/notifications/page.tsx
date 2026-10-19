@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import OperationsShell from "@/components/operations/OperationsShell";
+import DemoDataBadge from "@/components/operations/DemoDataBadge";
 
 type Notice = { id: number; title: string; detail: string; source: string; time: string; kind: string };
 const tabs = ["Activity feed", "Customer messages", "Scheduled", "Templates"];
@@ -46,7 +47,7 @@ export default function NotificationsPage() {
 
   return <OperationsShell active="Notifications">
     <p className="text-[10px] font-bold uppercase text-indigo-800">Operations / Notifications</p>
-    <h1 className="mt-2 text-3xl font-extrabold">Notifications</h1>
+    <h1 className="mt-2 text-3xl font-extrabold">Notifications</h1><DemoDataBadge />
     <p className="mt-2 text-sm text-slate-500">Send updates and monitor important events.</p>
     <div className="mt-6 flex flex-wrap items-end gap-3">
       <label className="min-w-[240px] flex-1 text-xs font-semibold">Search notifications<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Enter keyword" className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal" /></label>

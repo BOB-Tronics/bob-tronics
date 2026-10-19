@@ -11,10 +11,11 @@ function ImagePlaceholder({ label, className }: { label: string; className: stri
 }
 
 export default function ProductGallery({ images, name }: { images: string[]; name: string }) {
+  const availableImages = images.filter((image) => typeof image === "string" && image.trim().length > 0);
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [failedImages, setFailedImages] = useState<string[]>([]);
-  const image = images[index];
+  const image = availableImages[index];
   const imageFailed = !image || failedImages.includes(image);
   const isLocalImage = image?.startsWith("/") ?? false;
 
@@ -23,8 +24,8 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
   }
 
   function go(step: number) {
-    if (!images.length) return;
-    setIndex((current) => (current + step + images.length) % images.length);
+    if (!availableImages.length) return;
+    setIndex((current) => (current + step + availableImages.length) % availableImages.length);
   }
 
   return (
@@ -47,9 +48,9 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
             sizes="(max-width: 1024px) 100vw, 55vw"
           />}
         </button>
-        {images.length > 1 && (
+        {availableImages.length > 1 && (
           <div className="mt-3 grid grid-cols-4 gap-3">
-            {images.map((image, i) => (
+            {availableImages.map((image, i) => (
               <button
                 key={image}
                 onClick={() => setIndex(i)}
@@ -80,14 +81,14 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
             sizes="100vw"
           />}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <Button variant="secondary" onClick={() => go(-1)} disabled={images.length < 2}>
+            <Button variant="secondary" onClick={() => go(-1)} disabled={availableImages.length < 2}>
               ← Previous
             </Button>
             <p className="text-sm text-muted">
-              Image {index + 1} of {images.length}
+              Image {index + 1} of {availableImages.length}
             </p>
             <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => go(1)} disabled={images.length < 2}>
+              <Button variant="secondary" onClick={() => go(1)} disabled={availableImages.length < 2}>
                 Next →
               </Button>
               <Button onClick={() => setExpanded(false)}>Close ×</Button>

@@ -82,7 +82,7 @@ export default function AccountOverviewPage() {
             <p className="font-semibold text-primary">
               {latest.estimatedDelivery
                 ? `Estimated delivery · ${formatDate(latest.estimatedDelivery)}`
-                : `Status · ${latest.rawStatus ?? latest.status}`}
+                : "Estimated delivery —"}
             </p>
             <p className="mt-1 text-sm text-muted">
               {currentStep?.note ?? "We will update you as your order progresses."}

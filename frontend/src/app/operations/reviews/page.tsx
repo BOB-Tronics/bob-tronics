@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import OperationsShell from "@/components/operations/OperationsShell";
 import { getReviews, type Review } from "@/services/reviews";
+import DemoDataBadge from "@/components/operations/DemoDataBadge";
 
 const tabs = ["All reviews", "Pending", "Published", "Hidden"];
 
@@ -37,7 +38,7 @@ export default function OperationsReviewsPage() {
 
   return <OperationsShell active="Reviews">
     <p className="text-[10px] font-bold uppercase text-indigo-800">Operations / Reviews</p>
-    <h1 className="mt-2 text-3xl font-extrabold">Reviews</h1>
+    <h1 className="mt-2 text-3xl font-extrabold">Reviews</h1><DemoDataBadge />
     <p className="mt-2 text-sm text-slate-500">Review feedback and publish with confidence.</p>
     <div className="mt-6 flex flex-wrap items-end gap-3">
       <label className="min-w-[240px] flex-1 text-xs font-semibold">Search reviews<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Enter keyword" className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal" /></label>

@@ -4,6 +4,7 @@ export type StockStatus = "in-stock" | "low-stock" | "pre-order";
 
 export interface Category {
   slug: CategorySlug;
+  backendId?: number;
   name: string;
   tagline: string;
   image: string;
@@ -99,7 +100,7 @@ export interface Order {
   placedAt: string;
   estimatedDelivery: string;
   status: OrderStatus;
-  paymentStatus: "Paid" | "Pending";
+  paymentStatus: string;
   items: OrderItem[];
   subtotal: number;
   delivery: number;
@@ -114,6 +115,7 @@ export interface Order {
   shippingAddress?: string;
   phone?: string;
   rawStatus?: string;
+  deliveryStatus?: string;
 }
 
 export interface Address {
@@ -132,6 +134,7 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
+  residence?: string;
 }
 
 export interface ServiceRequest {
@@ -173,6 +176,8 @@ export interface BackendUser {
   phone: string;
   residence: string;
   created_at: string;
+  is_active?: boolean;
+  last_login?: string | null;
 }
 
 export type BackendUserProfile = BackendUser;
@@ -285,6 +290,7 @@ export interface BackendOrderItem {
 export interface BackendOrderList {
   order_id: number;
   customer_email: string;
+  customer_name?: string;
   order_date: string;
   status: string;
   status_display: string;
@@ -292,6 +298,11 @@ export interface BackendOrderList {
   total_items: number;
   shipping_address: string;
   phone: string;
+  payment_status?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  delivery_status?: string;
+  estimated_delivery?: string | null;
   created_at: string;
 }
 
@@ -305,6 +316,11 @@ export interface BackendOrder {
   total_amount: string;
   shipping_address: string;
   phone: string;
+  payment_status?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  delivery_status?: string;
+  estimated_delivery?: string | null;
   items: BackendOrderItem[];
   delivery: string;
   created_at: string;
@@ -458,6 +474,8 @@ export interface BackendProduct {
   stock_quantity: number;
   warranty?: string;
   is_available: boolean;
+  average_rating?: number | string;
+  review_count?: number;
   primary_image?: string | null;
   images?: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
   created_at?: string;
@@ -511,6 +529,7 @@ export interface BackendAdminCustomerList {
   residence: string;
   role: string;
   is_active: boolean;
+  last_login: string | null;
   total_orders: number;
   created_at: string;
 }
@@ -524,9 +543,10 @@ export interface BackendAdminCustomerDetail {
   residence: string;
   role: string;
   is_active: boolean;
+  last_login: string | null;
   total_orders: number;
   total_spent: string;
-  recent_orders: string;
+  recent_orders: BackendOrderList[];
   created_at: string;
   updated_at: string;
 }

@@ -6,7 +6,6 @@ import { apiFetch, ApiError } from "@/lib/api";
 import type {
   ActivationInput,
   BackendUserProfile,
-  LoginResponse,
   MessageResponse,
   PasswordResetConfirmInput,
   PasswordResetInput,
@@ -145,22 +144,32 @@ export async function refreshAccessToken(): Promise<Tokens | null> {
   }
 }
 
-// UNVERIFIED: backend login response has nested tokens and a user object.
+type LoginResponseCompat = {
+  message?: string;
+  user?: BackendUserProfile;
+  tokens?: { access?: string; refresh?: string };
+  data?: { access?: string; refresh?: string; user?: BackendUserProfile };
+  access?: string;
+  refresh?: string;
+};
+
+// Accept both documented login envelopes; fetch the profile when login omits it.
 export async function login(email: string, password: string) {
-  const response = await apiFetch<LoginResponse>("/auth/login/", {
+  const response = await apiFetch<LoginResponseCompat>("/auth/login/", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  if (!response?.user || !response.tokens?.access || !response.tokens?.refresh) {
+  const access = response?.tokens?.access ?? response?.data?.access ?? response?.access;
+  const refresh = response?.tokens?.refresh ?? response?.data?.refresh ?? response?.refresh;
+  if (!access || !refresh) {
     throw new ApiError("Login failed", 400);
   }
 
-  setTokens({
-    access: response.tokens.access,
-    refresh: response.tokens.refresh,
-  });
-  storeUser(response.user);
-  return response;
+  setTokens({ access, refresh });
+  const user = response?.user ?? response?.data?.user ?? await getMe();
+  if (!user) throw new ApiError("Unable to load user profile", 502);
+  storeUser(user);
+  return { ...response, user };
 }
 
 export async function register(data: RegisterInput) {
@@ -254,8 +263,8 @@ export async function authApiFetch<T>(
   try {
     return await apiFetch<T>(path, { ...options, headers });
   } catch (error: unknown) {
-    logApiFailure(path, error);
     if (!(error instanceof ApiError) || error.status !== 401) {
+      logApiFailure(path, error);
       throw error;
     }
 

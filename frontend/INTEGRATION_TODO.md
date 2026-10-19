@@ -16,7 +16,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - CORS is working; no backend changes needed.
 
 ## Database state
-- Empty: no products, no categories, no promotions, no reviews. All list endpoints return empty results.
+- Populated catalog: the earlier live pass returned six products and categories; review and promotion lists were observed empty in earlier responses. Current filtered product requests return 200 and include average_rating and review_count.
 
 ## Assumptions (unverified until backend has data)
 - Backend product id is an integer; frontend Product.id is a string (String(backend product_id)).
@@ -26,7 +26,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - Backend Service status values: new, in_progress, completed, cancelled.
 - Login error detail for unactivated account assumed detectable via response body (not yet tested â€” cannot log in).
 - 401 on any apiFetch triggers one /auth/refresh/ attempt; if refresh fails, tokens cleared and redirect to /sign-in.
-- Admin role check assumes User.role === "admin" or "super_admin".
+- Admin guard requires `profile.role === "super_admin"`.
 
 ## Endpoints (one line each)
 
@@ -49,8 +49,8 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
   - Error shape: {"success":false,"error":{"status_code":400,"details":{"detail":["Invalid email or password."]}}}
   - Fixed apiFetch to extract message from error.details.detail[0] instead of top-level detail.
 - POST /auth/refresh/ -> src/lib/auth.ts refreshAccessToken, UNVERIFIED (needs valid refresh token)
-- POST /accounts/register/ -> src/lib/auth.ts register, BROKEN (404 Not Found â€” endpoint does not exist at this path)
-- GET /accounts/me/ -> src/lib/auth.ts getMe, UNVERIFIED (needs auth token; user not activated)
+- POST /accounts/register/ -> src/lib/auth.ts register, VERIFIED (2026-10-19: empty unauthenticated body returned 400 with required fields first_name, last_name, email, password, password_confirm; endpoint exists)
+- GET /accounts/me/ -> src/lib/auth.ts getMe, VERIFIED (200, fields: user_id, first_name, last_name, email, phone, residence, role, created_at, updated_at)
 - POST /accounts/logout/ -> src/lib/auth.ts logout, UNVERIFIED (needs auth token)
 - POST /accounts/activate/ -> src/lib/auth.ts activate, UNVERIFIED (needs uid/token from email)
 - GET /accounts/activate/ -> src/lib/auth.ts activateFromEmailLink, UNVERIFIED (query-param shape not confirmed)
@@ -58,11 +58,12 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - POST /accounts/password-reset/confirm/ -> src/lib/auth.ts passwordResetConfirm, UNVERIFIED (needs uid/token/new_password)
 
 ### PHASE 3 - Cart and wishlist (login required)
-- GET /cart/ -> src/hooks/useCart, UNVERIFIED (needs auth token)
-- POST /cart/items/ -> src/hooks/useCart, UNVERIFIED (needs auth token)
-- PATCH /cart/items/{cart_item_id}/ -> src/hooks/useCart, UNVERIFIED (needs auth token)
-- DELETE /cart/items/{cart_item_id}/ -> src/hooks/useCart, UNVERIFIED (needs auth token)
-- POST /cart/clear/ -> src/hooks/useCart, UNVERIFIED (needs auth token)
+- GET /cart/ -> src/hooks/useCart, VERIFIED (200, shape {success, data}, data fields: items, total_items, total_price, has_out_of_stock_items)
+- POST /cart/items/ -> src/hooks/useCart, VERIFIED (201 with in-stock product, shape {success, message, data}, data fields: cart_item_id, product, quantity, subtotal, is_in_stock, added_at; 400 if out of stock)
+- PATCH /cart/items/{cart_item_id}/ -> src/hooks/useCart, UNVERIFIED (needs auth token + existing cart_item_id)
+- DELETE /cart/items/{cart_item_id}/ -> src/hooks/useCart, UNVERIFIED (needs auth token + existing cart_item_id)
+- DELETE /cart/clear/ -> src/hooks/useCart, UNVERIFIED (test credentials were unavailable in the integration shell; customer cart clear was not re-tested)
+- POST /cart/clear/ -> src/hooks/useCart, VERIFIED from prior live check (200, shape {success, message, deleted_count}); this pass could not re-test because test credentials were unavailable
 - GET /wishlist/ -> src/hooks/useWishlist, UNVERIFIED (needs auth token)
 - POST /wishlist/items/ -> src/hooks/useWishlist, UNVERIFIED (needs auth token)
 - DELETE /wishlist/items/{product_id}/ -> src/hooks/useWishlist, UNVERIFIED (needs auth token)
@@ -70,8 +71,8 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 
 ### PHASE 4 - Orders, checkout, services, reviews (login required)
 - POST /orders/checkout/ -> src/services/checkout.ts placeOrder, UNVERIFIED (needs auth token)
-- GET /orders/ -> src/services/account.ts getOrders, UNVERIFIED (needs auth token)
-- GET /orders/{order_id}/ -> src/services/account.ts getOrder, UNVERIFIED (needs auth token)
+- GET /orders/ -> src/services/account.ts getOrders, VERIFIED (200, paginated {count,next,previous,results}, first result fields: order_id, customer_email, customer_name, order_date, status, status_display, total_amount, total_items, shipping_address, phone, payment_status, payment_method, payment_reference, delivery_status, estimated_delivery, created_at)
+- GET /orders/{order_id}/ -> src/services/account.ts getOrder, VERIFIED (200, shape {success, data}, data fields: order_id, customer_email, customer_name, order_date, status, status_display, total_amount, shipping_address, phone, payment_status, payment_method, payment_reference, estimated_delivery, items, delivery, created_at, updated_at)
 - POST /orders/{order_id}/cancel/ -> src/services/account.ts cancelOrder, UNVERIFIED (needs auth token)
 - GET /deliveries/orders/{order_id}/ -> src/services/deliveries.ts getDeliveryForOrder, UNVERIFIED (needs auth token)
 - GET /services/ -> src/services/services.ts getServices, UNVERIFIED (needs auth token)
@@ -102,6 +103,24 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 - GET/PATCH /services/admin/{service_id}/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
 - GET /orders/admin/all/ -> src/services/admin.ts `adminListOrders`, VERIFIED (browser response confirmed authenticated paginated `{count,next,previous,results}` envelope; current result set is empty, so order fields remain UNVERIFIED)
 - PATCH /orders/admin/{order_id}/status/ -> src/services/admin.ts, UNVERIFIED (needs admin auth)
+- GET /deliveries/admin/ -> src/services/admin.ts adminListDeliveries, VERIFIED from supplied/live response (paginated; fields: delivery_id, order, delivery_address, delivery_method, tracking_number, status, shipping_fee, shipped_at, delivered_at, created_at, updated_at); current pass could not re-test without test credentials
+- GET /catalog/admin/products/ -> src/services/admin.ts adminListProducts, VERIFIED (200, paginated, fields: product_id, category, category_name, name, description, brand, price, stock_quantity, warranty, is_available, average_rating, review_count, images, created_at, updated_at)
+- GET /promotions/admin/discounts/ -> src/services/admin.ts adminListDiscounts, VERIFIED (200, shape {success, error}, empty results)
+- GET /services/admin/ -> src/services/admin.ts adminListServices, VERIFIED (200, shape {success, error}, empty results)
+- GET /deliveries/fees/ -> VERIFIED (200, shape {success, data}, data type: array(3))
+
+### Admin endpoints with recorded 404 results
+- GET /admin/dashboard/ -> 404
+- GET /dashboard/admin/ -> 404
+- GET /dashboard/ -> 404
+- GET /reviews/admin/ -> 404 (no admin reviews endpoint)
+- GET /admin/reviews/ -> 404
+- GET /catalog/admin/stock-history/ -> 404 (older probe used this incorrect path; does not establish the product-specific endpoint status)
+- GET /stock-history/ -> 404 (older alternate path)
+- GET /deliveries/couriers/ -> 404 (older probe used this incorrect path; does not establish `/deliveries/admin/couriers/` status)
+- GET /catalog/admin/products/{product_id}/stock-history/ -> UNVERIFIED (correct path supplied for product 4; admin login could not be tested because TEST_ADMIN_* variables were unavailable to this shell)
+- GET /deliveries/admin/couriers/ -> UNVERIFIED (correct path supplied; admin login could not be tested because TEST_ADMIN_* variables were unavailable to this shell)
+- GET /admin/deliveries/fees/ -> 404 (use /deliveries/fees/ instead)
 
 ### Dashboard, orders, customers, service requests (current integration pass)
 - GET /orders/admin/all/ -> `adminListOrders` -> VERIFIED (user supplied browser response confirmed paginated envelope and empty result; verify field aliases/totals when orders exist)
@@ -116,20 +135,20 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 
 ### FIELDS WITH NO BACKEND SOURCE
 - Dashboard revenue, sales, previous-period comparisons, revenue time series, category sales, report export data, all-products total, delivery totals/readiness, and recent activity feed: no corresponding endpoint was supplied.
-- Orders: customer display name, payment status, delivery status/method, product/SKU line details, and timeline/events are not guaranteed by the documented order fields; UI displays `—` where absent.
-- Customers: last-active time, communication preferences, account activity, support conversation, and customer-specific order line details have no supplied source.
+- Orders: product/SKU line details and timeline/events have no supplied source; confirmed order fields (including customer name, payment status/method/reference, delivery status, and estimated delivery) are shown and missing values render as `—`.
+- Customers: communication preferences, account activity, support conversation, and customer-specific order line details have no supplied source. `last_login`, `total_orders`, and `total_spent` are mapped from the supplied customer fields.
 - Service requests: appointment date, customer display name, location, assigned specialist, priority, attachment, and activity history have no supplied source.
-- These fields are rendered as `—` or an unavailable-state message unless the actual response includes a recognized field alias. All response aliases/status enumerations remain UNVERIFIED until checked against the live backend.
+- These fields are rendered as `—` or an unavailable-state message unless the actual response includes a verified field. Remaining response aliases/status enumerations are UNVERIFIED until checked against the live backend.
 
 ### Other operations pages still using demo interactions/data
-- `src/app/operations/deliveries/page.tsx` -> static demo dispatch map; no admin deliveries-list endpoint was supplied (the listed delivery endpoints are per-order detail and public tracking).
+- `src/app/operations/deliveries/page.tsx` -> GET /deliveries/admin/, GET /deliveries/admin/couriers/, GET /deliveries/fees/ and PATCH /deliveries/admin/{id}/. List and fee shapes are supplied as verified; courier GET and status PATCH are UNVERIFIED because test credentials were unavailable. Status updates require confirmation and show field errors.
 - `src/app/operations/payments/page.tsx` -> hardcoded payment rows; no admin payments endpoint was supplied.
 - `src/app/operations/reports/page.tsx` -> hardcoded product/report data; no reporting endpoint was supplied.
 - `src/app/operations/notifications/page.tsx` -> demo customer notification feed/send interaction; no admin notifications endpoint was supplied.
 - `src/app/operations/settings/page.tsx` -> settings save is local demo state; no admin settings endpoint was supplied.
 - `src/app/operations/reviews/page.tsx` -> loads real `GET /reviews/` list; publish, hide, reply, and status tabs are disabled because no moderation endpoints/status contract was supplied.
 - `src/components/operations/OperationsShell.tsx` and `OperationsFrame.tsx` provide shared navigation/layout and do not own these demo datasets.
-- These pages were outside the authorized page scope and remain unchanged in this integration pass.
+- These demo datasets and interactions were not changed; a Demo data badge makes the missing backend source visible. The real deliveries page no longer uses the former demo dataset.
 - Dashboard verification: user confirmed the low-stock alert displays `3` from the verified `/catalog/admin/products/low-stock/?threshold=5` response.
 
 ### Reviews list assumptions
@@ -147,7 +166,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 3. src/services/account.ts: Removed silent mock fallbacks â€” getCurrentUser throws on fetch failure; getAddresses/getServiceRequests/getItServices/getTestimonials return [] when not mock (no mock data leakage).
 4. No silent mock fallback remains anywhere in the codebase.
 
-- Stock history table in src/app/operations/inventory/page.tsx -> UNVERIFIED / unavailable (no stock history endpoint supplied; UI reports this rather than showing fabricated movements).
+- Stock history table in `src/app/operations/inventory/page.tsx` -> UNVERIFIED (correct product-specific path was supplied, but admin credentials were unavailable in this shell so no authenticated status was observed; UI avoids fabricated movements).
 - Catalog create/edit/delete and image upload UI in src/app/operations/{categories,products}/... -> UNVERIFIED (test with admin account; verify backend validation, permissions, and refresh behavior).
 
 ## Integration pass 2026-10-19 (remaining endpoints wired)
@@ -155,7 +174,7 @@ Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{i
 
 ### Fixed: account pages now really call the backend
 - src/app/account/page.tsx, account/orders/page.tsx, account/orders/[id]/page.tsx, account/[section]/page.tsx, checkout/page.tsx were server components, but authApiFetch returns {} on the server (no browser token), so GET /orders/, /orders/{id}/ and /accounts/me/ never ran. They are now client components with loading/error/empty states.
-- src/services/account.ts maps backend order statuses (pending/confirmed/processing/shipped/delivered/cancelled) onto the UI statuses and builds the timeline from the status. estimatedDelivery, paymentMethod and paymentReference have NO BACKEND SOURCE and render as "to be confirmed"/"—".
+- src/services/account.ts maps backend order statuses (pending/confirmed/processing/shipped/delivered/cancelled) and maps payment_status, payment_method, payment_reference, delivery_status, and estimated_delivery from the supplied verified order shape. Missing values render as "—".
 
 ### Newly wired endpoints
 - POST /accounts/logout/ -> AccountSidebar "Logout" button and OperationsFrame "Sign out", UNVERIFIED (needs a signed-in session).
@@ -183,9 +202,18 @@ Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{i
 
 ### Still NO BACKEND ENDPOINT (unchanged, demo state)
 - Profile edit / change password (only GET /accounts/me/ exists), address book CRUD, saved payment methods, support tickets, customer notifications, newsletter, Google sign-in.
-- Operations: payments, deliveries list/courier assignment, reports, notifications, settings, review moderation (publish/hide/reply), stock history, dashboard revenue/sales.
+- Operations: payments, reports, notifications, settings, review moderation (publish/hide/reply), courier assignment, stock history pending correct-path authenticated test; dashboard sales comparisons/time series.
 - IT services catalogue (the three service cards are static copy); order estimated delivery date, payment method/reference; product ratings/review counts on cards (reviews are only loaded per product page).
 - Local (signed-out) cart is not merged into the backend cart on sign-in.
+
+## Integration follow-up (2026-10-19)
+- `POST /accounts/register/` empty-body probe -> VERIFIED 400; required field names: first_name, last_name, email, password, password_confirm.
+- `GET /catalog/products/?brand=Samsung`, `?min_price=1`, `?max_price=999999999`, `?in_stock=true` -> VERIFIED 200; product result fields include average_rating and review_count.
+- `GET /catalog/products/?category=3` -> VERIFIED 200. `?category=phones` -> 400; category filter must send backend category ID. Shop now maps category slugs to IDs returned from `/catalog/categories/`.
+- `GET /reviews/?product=4` and `/promotions/active/?page_size=2` -> VERIFIED 200 (paginated result envelopes).
+- Authenticated re-tests were not possible: TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD, TEST_CUSTOMER_EMAIL, and TEST_CUSTOMER_PASSWORD were not present in the shell environment. No credentials were requested or printed; authenticated statuses remain as previously recorded until rerun in the IDE terminal.
+- Login accepts both `{message,user,tokens:{access,refresh}}` and `{success,data:{access,refresh}}`; the successful login shape was not re-tested because the test variables were absent from this shell. The attempted request without credentials returned 400 `{success,error}` and does not verify a successful login envelope.
+- `PATCH /accounts/me/` and `POST /accounts/change-password/` are built from the supplied field contract and marked UNVERIFIED; neither was live-tested or sent to an existing account.
 
 ## Images and home page design (2026-10-19)
 - Why uploaded images did not display: the backend only stores an image URL (POST /catalog/admin/images/ with image_url); there is no file upload. Product 4 ("sumsung s26 Ultra") was saved with a Google *search results* link (returns text/html, not an image), so browsers cannot render it. Products 5, 6, 8 and 10 have no image attached at all. Product 9 (gstatic thumbnail) and the category images render fine.
@@ -193,3 +221,21 @@ Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{i
 - Home page background: /images/background.png is the Figma node 1667-197 (1280 x 3466). It was shown with cover + fixed, so only its flat top strip was visible; it now spans the page width and scrolls with the page, and the home wrapper tint was removed.
 - Category cards fall back to the bundled photos for phones/laptops/accessories/gaming when the backend category has no image; taglines are clamped to two lines.
 - IT services block is static site content (src/lib/it-services.ts) rendered inside a white panel as in the design.
+
+## Latest integration status (2026-10-19)
+- GET /catalog/products/?brand=Samsung -> `src/services/products.ts` / Shop, VERIFIED (200; list fields include average_rating and review_count).
+- GET /catalog/products/?min_price=1 -> Shop, VERIFIED (200).
+- GET /catalog/products/?max_price=999999999 -> Shop, VERIFIED (200).
+- GET /catalog/products/?in_stock=true -> Shop, VERIFIED (200).
+- GET /catalog/products/?category=3 -> Shop, VERIFIED (200). A category slug returned 400; the UI now sends the backend category_id.
+- GET /reviews/?product=4 -> product detail reviews, VERIFIED (200, paginated).
+- GET /promotions/active/?page_size=2 -> promotion list, VERIFIED (200, paginated).
+- POST /accounts/register/ with {} and no Authorization -> VERIFIED (400; required fields: first_name, last_name, email, password, password_confirm; endpoint exists).
+- PATCH /accounts/me/ -> profile form, UNVERIFIED (uses supplied fields; no existing profile was changed).
+- POST /accounts/change-password/ -> change password form, UNVERIFIED (uses supplied fields; no password was changed).
+- GET /catalog/admin/products/4/stock-history/ -> admin product stock history, UNVERIFIED (correct path needs admin auth; test credentials unavailable to shell; no status was observed).
+- GET /deliveries/admin/couriers/ -> Operations / Deliveries, UNVERIFIED (correct path needs admin auth; test credentials unavailable to shell).
+- PATCH /deliveries/admin/{delivery_id}/ -> Operations / Deliveries status form, UNVERIFIED (status body based on supplied contract; requires confirmation; no existing delivery was changed).
+- GET /deliveries/fees/ -> Operations / Deliveries fee schedule, VERIFIED from prior live result (200, `{success,data}` with three items).
+- Login top-level keys could not be checked on a successful live login in this shell. Login code accepts `tokens.access/refresh` and `data.access/refresh`; admin guard uses `profile.role === "super_admin"`.
+- Authenticated re-tests of login, /accounts/me/, /cart/, /orders/, /customers/, /orders/admin/all/, and /deliveries/admin/ were unavailable because TEST_ADMIN_* and TEST_CUSTOMER_* were absent. Do not treat the 401 unauthenticated probes as regressions.
