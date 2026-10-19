@@ -172,6 +172,25 @@ export async function adminLowStock(threshold: number) {
   return authApiFetch<{ count: number; results: BackendProduct[] }>(`/catalog/admin/products/low-stock/?threshold=${threshold}`);
 }
 
+// ---- Stock history admin ----
+
+export interface StockHistoryEntry {
+  id: number;
+  product_id: number;
+  product_name: string;
+  previous_quantity: number;
+  new_quantity: number;
+  delta: number;
+  reason: string;
+  changed_by: string;
+  changed_at: string;
+}
+
+export async function adminStockHistory(productId?: number) {
+  const query = productId !== undefined ? `?product_id=${productId}` : "";
+  return authApiFetch<{ count: number; results: StockHistoryEntry[] }>(`/catalog/admin/stock-history/${query}`);
+}
+
 // ---- Discounts admin (main: /promotions/admin/discounts/) ----
 
 export async function adminListDiscounts() {
@@ -234,3 +253,4 @@ export async function adminListOrders() {
 export async function adminPatchOrderStatus(orderId: number, status: string) {
   return authApiFetch(`/orders/admin/${orderId}/status/`, { method: "PATCH", body: jsonBody({ status }) });
 }
+

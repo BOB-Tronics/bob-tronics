@@ -53,10 +53,6 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
       <div className="bg-navy text-xs text-white/80">
-        <div className="page-container flex h-9 items-center justify-between">
-          <p>Genuine tech. Expert support. Delivered.</p>
-          <p className="hidden sm:block">Kigali delivery from RWF 80 Â· Demo store</p>
-        </div>
       </div>
 
       <div className="page-container flex h-16 items-center justify-between gap-4 lg:h-20">

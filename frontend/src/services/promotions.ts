@@ -42,22 +42,20 @@ export interface Promotion {
   isActive: boolean;
 }
 
-export async function getActivePromotions(): Promise<Promotion[]> {
+export async function getActivePromotions(pageSize?: number): Promise<Promotion[]> {
   // UNVERIFIED: check which of /promotions/active/ or /catalog/active/ returns deals.
   if (useMock()) {
     return promotions;
   }
   try {
-    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(
-      "/promotions/active/"
-    );
+    const query = pageSize ? `?page_size=${pageSize}` : "";
+    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(`/promotions/active/${query}`);
     if (!response || !response.results) return [];
     return response.results.map(mapBackendPromotion);
   } catch {
     // Fall back to catalog/active/ if promotions/active/ fails.
-    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(
-      "/catalog/active/"
-    );
+    const query = pageSize ? `?page_size=${pageSize}` : "";
+    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(`/catalog/active/${query}`);
     if (!response || !response.results) return [];
     return response.results.map(mapBackendPromotion);
   }

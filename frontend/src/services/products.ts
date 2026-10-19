@@ -12,12 +12,15 @@ interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
+  slug: string;
   description: string;
   brand: string;
   price: string;
   stock_quantity: number;
   warranty: string;
   is_available: boolean;
+  average_rating: number;
+  review_count: number;
   images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
   created_at: string;
   updated_at: string;
@@ -48,7 +51,7 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
 
   return {
     id: String(item.product_id),
-    slug: String(item.product_id),
+    slug: item.slug ?? String(item.product_id),
     name: item.name,
     brand: item.brand,
     category: slugify(item.category_name),
@@ -57,8 +60,8 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
     tagline: item.category_name,
     description: item.description,
     images: item.images?.map((img) => img.image_url) || [],
-    rating: 0,
-    reviewCount: 0,
+    rating: item.average_rating ?? 0,
+    reviewCount: item.review_count ?? 0,
     stock: stockStatus,
     stockCount: item.stock_quantity,
     sku: `BT-${item.product_id}`,
@@ -108,7 +111,13 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
   if (filters.search) query.set("search", filters.search);
 
   const path = `/catalog/products/${query.toString() ? `?${query.toString()}` : ""}`;
-  const response = await apiFetch<PaginatedResponse<BackendProduct>>(path);
+  let response: PaginatedResponse<BackendProduct> | null = null;
+  try {
+    response = await apiFetch<PaginatedResponse<BackendProduct>>(path);
+  } catch {
+    // Backend unavailable or endpoint not ready — fall back to empty results.
+    return [];
+  }
 
   if (!response || !response.results) {
     return [];
@@ -117,13 +126,17 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
   return response.results.map(mapBackendProductToProduct);
 }
 
-export async function getProduct(slug: string): Promise<Product | undefined> {
+export async function getProduct(productIdOrSlug: string): Promise<Product | undefined> {
   if (useMock()) {
-    return getProductSync(slug);
+    return getProductSync(productIdOrSlug);
   }
 
+  // Backend uses integer product_id in the URL path.
+  const numericId = Number(productIdOrSlug);
+  const id = Number.isFinite(numericId) ? numericId : productIdOrSlug;
+
   try {
-    const response = await apiFetch<BackendProduct>(`/catalog/products/${slug}/`);
+    const response = await apiFetch<BackendProduct>(`/catalog/products/${id}/`);
     if (!response) return undefined;
     return mapBackendProductToProduct(response);
   } catch (error) {
@@ -162,9 +175,15 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
     return products.filter((p) => p.id !== product.id).slice(0, limit);
   }
 
-  const response = await apiFetch<PaginatedResponse<BackendProduct>>(
-    `/catalog/categories/${categoryId}/products/`
-  );
+  let response: PaginatedResponse<BackendProduct> | null = null;
+  try {
+    response = await apiFetch<PaginatedResponse<BackendProduct>>(
+      `/catalog/categories/${categoryId}/products/`
+    );
+  } catch {
+    // Backend unavailable or endpoint not ready — fall back to empty results.
+    return [];
+  }
 
   if (!response || !response.results) {
     return [];
@@ -181,7 +200,13 @@ export async function getCategories(): Promise<Category[]> {
     return categories;
   }
 
-  const response = await apiFetch<PaginatedResponse<BackendCategory>>("/catalog/categories/");
+  let response: PaginatedResponse<BackendCategory> | null = null;
+  try {
+    response = await apiFetch<PaginatedResponse<BackendCategory>>("/catalog/categories/");
+  } catch {
+    // Backend unavailable or endpoint not ready — fall back to empty results.
+    return [];
+  }
 
   if (!response || !response.results) {
     return [];
@@ -190,6 +215,6 @@ export async function getCategories(): Promise<Category[]> {
   return response.results.map(mapBackendCategoryToCategory);
 }
 
-export function getProductSync(id: string): Product | undefined {
-  return products.find((p) => p.id === id);
+export function getProductSync(idOrSlug: string): Product | undefined {
+  return products.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
 }

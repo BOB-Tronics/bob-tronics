@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-import AuthPanel from "@/components/account/AuthPanel";
-=======
-import OrderStatusBadge from "@/components/account/OrderStatusBadge";
+﻿import OrderStatusBadge from "@/components/account/OrderStatusBadge";
 import OrdersTable from "@/components/account/OrdersTable";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -15,17 +12,24 @@ import {
   getServiceRequests,
   getWishlistIds,
 } from "@/services/account";
->>>>>>> origin/gisa
 
-export const metadata = { title: "Sign in · BOB TRONICS" };
+export const metadata = { title: "Account · BOB TRONICS" };
 
-export default function AccountOverviewPage() {
+export default async function AccountOverviewPage() {
+  const [user, orders, serviceRequests, addresses] = await Promise.all([
+    getCurrentUser(),
+    getOrders(),
+    getServiceRequests(),
+    getAddresses(),
+  ]);
+
+  const wishlistIds = await getWishlistIds();
+
+  const latest = orders.length > 0 ? orders[0] : undefined;
+  const request = serviceRequests.length > 0 ? serviceRequests[0] : undefined;
+  const address = addresses.length > 0 ? addresses[0] : undefined;
+
   return (
-<<<<<<< HEAD
-    <section className="flex min-h-[calc(100svh-100px)] items-center justify-center bg-[linear-gradient(135deg,#fff_0%,#f4f5f8_52%,#e8ebf2_100%)] px-4 py-10 sm:px-8 lg:min-h-[calc(100svh-116px)]">
-      <AuthPanel />
-    </section>
-=======
     <>
       <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <StatCard value={orders.length} label="Orders" />
@@ -104,6 +108,5 @@ function StatCard({ value, label }: { value: number; label: string }) {
       <p className="text-4xl font-extrabold text-primary">{value}</p>
       <p className="mt-2 text-muted">{label}</p>
     </Card>
->>>>>>> origin/gisa
   );
 }

@@ -17,6 +17,14 @@ export interface DeliveryTracking {
   updatedAt: string;
 }
 
+export interface DeliveryMethod {
+  id: string;
+  name: string;
+  displayName: string;
+  fee: number;
+  estimatedDays: number;
+}
+
 function mapBackendDeliveryTracking(item: BackendDeliveryTracking): DeliveryTracking {
   return {
     trackingNumber: item.tracking_number,
@@ -30,6 +38,16 @@ function mapBackendDeliveryTracking(item: BackendDeliveryTracking): DeliveryTrac
     deliveredAt: item.delivered_at,
     createdAt: item.created_at,
     updatedAt: item.updated_at,
+  };
+}
+
+function mapBackendDeliveryMethod(item: { delivery_method: string; delivery_method_display: string; shipping_fee: string }): DeliveryMethod {
+  return {
+    id: item.delivery_method,
+    name: item.delivery_method,
+    displayName: item.delivery_method_display,
+    fee: Number(item.shipping_fee) || 0,
+    estimatedDays: item.delivery_method === "express" ? 2 : item.delivery_method === "store_pickup" ? 0 : 5,
   };
 }
 
@@ -57,5 +75,19 @@ export async function getDeliveryForOrder(orderId: string | number): Promise<Bac
     return await apiFetch<BackendDeliveryTracking>(`/deliveries/orders/${orderId}/`);
   } catch {
     return null;
+  }
+}
+
+// Available delivery methods and fees (login required).
+export async function getDeliveryMethods(): Promise<DeliveryMethod[]> {
+  if (useMock()) {
+    return [];
+  }
+  try {
+    const response = await apiFetch<{ results: Array<{ delivery_method: string; delivery_method_display: string; shipping_fee: string }> }>("/deliveries/methods/");
+    if (!response || !response.results) return [];
+    return response.results.map(mapBackendDeliveryMethod);
+  } catch {
+    return [];
   }
 }

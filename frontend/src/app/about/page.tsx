@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/PageHeader";
 export const metadata = { title: "About · BOB TRONICS" };
 
 const principles = [
-  { title: "Integrity", text: "Genuine products. Transparent advice. Clear commitments.", Icon: ShieldIcon },
+  { title: "Integrity", text: " products. Transparent advice. Clear commitments.", Icon: ShieldIcon },
   { title: "Expertise", text: "Practical knowledge that turns questions into confident decisions.", Icon: HeadsetIcon },
   { title: "Care", text: "People-first support, long after the purchase.", Icon: HeartIcon },
 ];

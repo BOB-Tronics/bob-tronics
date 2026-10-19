@@ -26,17 +26,17 @@ function mapBackendOrderToOrder(item: BackendOrderList): Order {
     id: String(item.order_id),
     date: item.order_date,
     placedAt: item.order_date,
-    estimatedDelivery: item.created_at,
+    estimatedDelivery: item.estimated_delivery ?? item.created_at,
     status: (item.status_display || item.status) as Order["status"],
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status as Order["paymentStatus"],
     items: [],
     subtotal: Number(item.total_amount) || 0,
     delivery: 0,
     discount: 0,
     total: Number(item.total_amount) || 0,
     deliveryMethod: "Standard Delivery",
-    paymentMethod: "MTN MoMo",
-    paymentReference: "",
+    paymentMethod: item.payment_method,
+    paymentReference: item.payment_reference,
     timeline: [
       { title: "Confirmed", time: item.created_at, note: "Order confirmed", state: "done" },
       { title: "Processing", time: item.created_at, note: "Order being processed", state: "pending" },
@@ -52,9 +52,9 @@ function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
     id: String(item.order_id),
     date: item.order_date,
     placedAt: item.order_date,
-    estimatedDelivery: item.created_at,
+    estimatedDelivery: item.estimated_delivery ?? item.created_at,
     status: (item.status_display || item.status) as Order["status"],
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status as Order["paymentStatus"],
     items: item.items.map((i) => ({
       productId: String(i.product.product_id),
       name: i.product.name,
@@ -68,8 +68,8 @@ function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
     discount: 0,
     total: Number(item.total_amount) || 0,
     deliveryMethod: item.delivery,
-    paymentMethod: "",
-    paymentReference: "",
+    paymentMethod: item.payment_method,
+    paymentReference: item.payment_reference,
     timeline: [],
   };
 }
@@ -78,7 +78,7 @@ export async function getCurrentUser(): Promise<User> {
   if (useMock()) {
     return currentUser;
   }
-  const profile = await authApiFetch<{ first_name: string; last_name: string; email: string; phone: string }>("/accounts/me/");
+  const profile = await authApiFetch<{ first_name: string; last_name: string; email: string; phone: string; residence: string }>("/accounts/me/");
   if (!profile) {
     return currentUser;
   }
@@ -87,7 +87,47 @@ export async function getCurrentUser(): Promise<User> {
     lastName: profile.last_name,
     email: profile.email,
     phone: profile.phone,
+    residence: profile.residence,
   };
+}
+
+export async function updateProfile(data: {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  residence?: string;
+}): Promise<User> {
+  if (useMock()) {
+    return currentUser;
+  }
+  const profile = await authApiFetch<{ first_name: string; last_name: string; email: string; phone: string; residence: string }>("/accounts/me/", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!profile) {
+    return currentUser;
+  }
+  return {
+    firstName: profile.first_name,
+    lastName: profile.last_name,
+    email: profile.email,
+    phone: profile.phone,
+    residence: profile.residence,
+  };
+}
+
+export async function changePassword(data: {
+  current_password: string;
+  new_password: string;
+  password_confirm: string;
+}): Promise<void> {
+  if (useMock()) {
+    return;
+  }
+  await authApiFetch<{ detail: string }>("/accounts/change-password/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function getOrders(): Promise<Order[]> {

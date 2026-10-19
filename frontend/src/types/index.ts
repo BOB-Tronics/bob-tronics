@@ -118,6 +118,7 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
+  residence?: string;
 }
 
 export interface ServiceRequest {
@@ -282,6 +283,10 @@ export interface BackendOrderList {
   total_items: number;
   shipping_address: string;
   phone: string;
+  payment_status: string;
+  payment_method: string;
+  payment_reference: string;
+  estimated_delivery: string;
   created_at: string;
 }
 
@@ -297,6 +302,10 @@ export interface BackendOrder {
   phone: string;
   items: BackendOrderItem[];
   delivery: string;
+  payment_status: string;
+  payment_method: string;
+  payment_reference: string;
+  estimated_delivery: string;
   created_at: string;
   updated_at: string;
 }
@@ -441,12 +450,15 @@ export interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
+  slug: string;
   description: string;
   brand: string;
   price: string;
   stock_quantity: number;
   warranty: string;
   is_available: boolean;
+  average_rating: number;
+  review_count: number;
   images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
   created_at: string;
   updated_at: string;

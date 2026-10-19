@@ -3,7 +3,7 @@
 // and retries once via /auth/refresh/ on 401.
 // UNVERIFIED: built from OpenAPI schema; confirm real login flow works.
 
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, delay, useMock } from "@/lib/api";
 import type {
   ActivationInput,
   BackendUserProfile,
@@ -43,6 +43,47 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+// ---- Mock auth (used when NEXT_PUBLIC_USE_MOCK=true) ----
+
+const MOCK_TOKENS: Tokens = {
+  access: "mock-access-token",
+  refresh: "mock-refresh-token",
+};
+
+const MOCK_USER: BackendUserProfile = {
+  user_id: 1,
+  email: "demo@bobtronics.com",
+  first_name: "Demo",
+  last_name: "User",
+  role: "admin",
+  phone: "+250700000000",
+  residence: "Kigali, Rwanda",
+  created_at: new Date().toISOString(),
+};
+
+export async function mockLogin(email: string, password: string) {
+  await delay(null, 800);
+  if (!email || !password) {
+    throw new ApiError("Please enter both email and password.", 400);
+  }
+  setTokens(MOCK_TOKENS);
+  return { user: MOCK_USER, tokens: MOCK_TOKENS } as LoginResponse;
+}
+
+export async function mockRegister(data: RegisterInput) {
+  await delay(null, 800);
+  if (!data.first_name || !data.last_name || !data.email || !data.password || !data.password_confirm) {
+    throw new ApiError("Please fill in all fields.", 400);
+  }
+  if (data.password !== data.password_confirm) {
+    throw new ApiError("Passwords do not match.", 400);
+  }
+  if (data.password.length < 8) {
+    throw new ApiError("Password must be at least 8 characters.", 400);
+  }
+  return { ...MOCK_USER, first_name: data.first_name, last_name: data.last_name, email: data.email } as BackendUserProfile;
+}
+
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -73,6 +114,9 @@ export async function refreshAccessToken(): Promise<Tokens | null> {
 }
 
 export async function login(email: string, password: string) {
+  if (useMock()) {
+    return mockLogin(email, password);
+  }
   const response = await apiFetch<LoginResponse>("/auth/login/", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -85,13 +129,24 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(data: RegisterInput) {
+  if (useMock()) {
+    return mockRegister(data);
+  }
   return apiFetch<BackendUserProfile>("/accounts/register/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
+export async function mockGetMe(): Promise<BackendUserProfile> {
+  await delay(null, 300);
+  return MOCK_USER;
+}
+
 export async function getMe() {
+  if (useMock()) {
+    return mockGetMe();
+  }
   return apiFetch<BackendUserProfile>("/accounts/me/");
 }
 
