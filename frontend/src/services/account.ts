@@ -177,6 +177,22 @@ export async function getItServices(): Promise<ItService[]> {
   return delay(itServices);
 }
 
-export async function getTestimonials(): Promise<Testimonial[]> {
-  return delay(testimonials);
+export async function googleLogin(credential: string): Promise<AuthTokens> {
+  const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/accounts/google-login/", {
+    method: "POST",
+    body: { credential } as unknown as BodyInit,
+  });
+
+  const tokens: AuthTokens | undefined = res?.tokens ?? (res?.access && res?.refresh ? { access: res.access, refresh: res.refresh } : undefined);
+
+  if (tokens && tokens.access) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bob_access_token", tokens.access);
+      if (tokens.refresh) {
+        localStorage.setItem("bob_refresh_token", tokens.refresh);
+      }
+    }
+    return tokens;
+  }
+  throw new Error("Invalid Google login response");
 }
