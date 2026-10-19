@@ -1,4 +1,5 @@
-import { delay } from "@/lib/api";
+import { apiFetch, PaginatedResponse, ApiError, isMockMode } from "@/lib/api";
+import { resolveImageUrl } from "@/lib/resolveImageUrl";
 import { categories, products } from "@/lib/mock-data";
 import type { Category, CategorySlug, Product } from "@/types";
 
@@ -7,35 +8,194 @@ export interface ProductFilters {
   search?: string;
 }
 
+interface BackendProduct {
+  product_id: number;
+  category: number;
+  category_name: string;
+  name: string;
+  description: string;
+  brand: string;
+  price: string;
+  stock_quantity: number;
+  warranty: string;
+  is_available: boolean;
+  primary_image?: string | null;
+  images?: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BackendCategory {
+  category_id: number;
+  name: string;
+  description: string;
+  image: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Internal cache: frontend product id (string) -> backend category id (number)
+// Populated by getProducts and getProduct so getRelatedProducts can look it up.
+const productCategoryIdMap = new Map<string, number>();
+
+function slugify(text: string): CategorySlug {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") as CategorySlug;
+}
+
+function mapBackendProductToProduct(item: BackendProduct): Product {
+  const stockStatus: Product["stock"] =
+    !item.is_available ? "pre-order" : item.stock_quantity > 0 ? "in-stock" : "low-stock";
+
+  productCategoryIdMap.set(String(item.product_id), item.category);
+
+  return {
+    id: String(item.product_id),
+    slug: String(item.product_id),
+    name: item.name,
+    brand: item.brand,
+    category: slugify(item.category_name),
+    price: Number(item.price) || 0,
+    // The list endpoint has no description, so the card line falls back to the category.
+    summary: item.description || item.category_name,
+    tagline: item.category_name,
+    description: item.description,
+    images: [
+      item.primary_image,
+      ...(item.images ?? []).filter((img) => img.is_primary).map((img) => img.image_url),
+      ...(item.images ?? []).filter((img) => !img.is_primary).map((img) => img.image_url),
+    ].map(resolveImageUrl).filter(Boolean),
+    rating: 0,
+    reviewCount: 0,
+    stock: stockStatus,
+    stockCount: item.stock_quantity,
+    sku: `BT-${item.product_id}`,
+    warranty: item.warranty,
+    finishes: [],
+    configurations: [],
+    highlights: [],
+    specs: [],
+    included: [],
+    reviews: [],
+    faqs: [],
+  };
+}
+
+function mapBackendCategoryToCategory(item: BackendCategory): Category {
+  return {
+    slug: slugify(item.name),
+    name: item.name,
+    tagline: item.description,
+    image: resolveImageUrl(item.image),
+    count: 0,
+    subcategories: [],
+  };
+}
+
 // Replace the bodies of these functions with fetch calls when the backend exists.
 export async function getProducts(filters: ProductFilters = {}): Promise<Product[]> {
-  let list = products;
-  if (filters.category) {
-    list = list.filter((p) => p.category === filters.category);
+  if (isMockMode()) {
+    let result = products;
+    if (filters.category) {
+      result = result.filter((p) => p.category === filters.category);
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.brand.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q)
+      );
+    }
+    return result;
   }
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    list = list.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)
-    );
+
+  const query = new URLSearchParams();
+  if (filters.category) query.set("category", String(filters.category));
+  if (filters.search) query.set("search", filters.search);
+
+  const path = `/catalog/products/${query.toString() ? `?${query.toString()}` : ""}`;
+  const response = await apiFetch<PaginatedResponse<BackendProduct>>(path);
+
+  if (!response || !response.results) {
+    return [];
   }
-  return delay(list);
+
+  return response.results.map(mapBackendProductToProduct);
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
-  return delay(products.find((p) => p.slug === slug));
+  if (isMockMode()) {
+    return getProductSync(slug);
+  }
+
+  try {
+    const response = await apiFetch<BackendProduct>(`/catalog/products/${slug}/`);
+    if (!response) return undefined;
+    return mapBackendProductToProduct(response);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
-  return delay(products.filter((p) => ids.includes(p.id)));
+  if (isMockMode()) {
+    return products.filter((p) => ids.includes(p.id));
+  }
+
+  const result: Product[] = [];
+  for (const id of ids) {
+    try {
+      const product = await getProduct(id);
+      if (product) result.push(product);
+    } catch {
+      // Skip products that fail to load.
+    }
+  }
+  return result;
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
-  return delay(products.filter((p) => p.id !== product.id).slice(0, limit));
+  if (isMockMode()) {
+    return products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, limit);
+  }
+
+  const categoryId = productCategoryIdMap.get(product.id);
+
+  if (categoryId === undefined) {
+    return products.filter((p) => p.id !== product.id).slice(0, limit);
+  }
+
+  const response = await apiFetch<PaginatedResponse<BackendProduct>>(
+    `/catalog/categories/${categoryId}/products/`
+  );
+
+  if (!response || !response.results) {
+    return [];
+  }
+
+  return response.results
+    .map(mapBackendProductToProduct)
+    .filter((p) => p.id !== product.id)
+    .slice(0, limit);
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return delay(categories);
+  if (isMockMode()) {
+    return categories;
+  }
+
+  // Backend returns a plain array [], not a paginated {count, results} object.
+  const response = await apiFetch<BackendCategory[] | PaginatedResponse<BackendCategory>>(
+    "/catalog/categories/"
+  );
+
+  if (!response) return [];
+  const results = Array.isArray(response) ? response : response.results ?? [];
+  return results.map(mapBackendCategoryToCategory);
 }
 
 export function getProductSync(id: string): Product | undefined {

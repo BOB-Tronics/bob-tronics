@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { categories } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { getCategories } from "@/services/products";
+import type { Category } from "@/types";
 import { useCart } from "@/hooks/useCart";
 import Button from "@/components/ui/Button";
 import {
@@ -31,6 +32,24 @@ export default function Header() {
   const { totalQuantity } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  // Categories come from GET /catalog/categories/ (empty until loaded or if the backend is down).
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((list) => {
+        if (!cancelled) setCategories(list);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (pathname === "/sign-in" || pathname === "/sign-up") return null;
 
   function closeMenus() {
     setMenuOpen(false);
@@ -84,7 +103,7 @@ export default function Header() {
             >
               Categories <ChevronDownIcon size={16} />
             </button>
-            {categoriesOpen && <CategoriesMenu onNavigate={closeMenus} />}
+            {categoriesOpen && <CategoriesMenu categories={categories} onNavigate={closeMenus} />}
           </div>
           {navLinks.slice(2).map((link) => (
             <NavLink key={link.href} {...link} active={isActive(link.href)} />
@@ -106,7 +125,7 @@ export default function Header() {
               </span>
             )}
           </Link>
-          <Link href="/account" className={`${iconButton} hidden sm:flex`} aria-label="My account">
+          <Link href="/sign-in" className={`${iconButton} hidden sm:flex`} aria-label="Sign in">
             <UserIcon />
           </Link>
           <div className="ml-2 hidden md:block">
@@ -123,7 +142,7 @@ export default function Header() {
         </div>
       </div>
 
-      {menuOpen && <MobileMenu isActive={isActive} onNavigate={closeMenus} />}
+      {menuOpen && <MobileMenu categories={categories} isActive={isActive} onNavigate={closeMenus} />}
     </header>
   );
 }
@@ -141,7 +160,7 @@ function NavLink({ label, href, active }: { label: string; href: string; active:
   );
 }
 
-function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
+function CategoriesMenu({ categories, onNavigate }: { categories: Category[]; onNavigate: () => void }) {
   return (
     <div className="absolute left-1/2 top-full w-[760px] -translate-x-1/2 pt-3" onClick={onNavigate}>
       <div className="rounded-2xl border border-line bg-white p-6 shadow-card">
@@ -180,7 +199,7 @@ function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => boolean; onNavigate: () => void }) {
+function MobileMenu({ categories, isActive, onNavigate }: { categories: Category[]; isActive: (href: string) => boolean; onNavigate: () => void }) {
   return (
     <div className="border-t border-line bg-white lg:hidden" onClick={onNavigate}>
       <nav className="page-container flex flex-col py-3" aria-label="Mobile">
@@ -210,7 +229,7 @@ function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => bool
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-4 sm:hidden">
-          <Button href="/account" variant="secondary">
+          <Button href="/sign-in" variant="secondary">
             <UserIcon size={18} /> My account
           </Button>
           <Button href="/account/wishlist" variant="secondary">
@@ -224,3 +243,5 @@ function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => bool
     </div>
   );
 }
+
+

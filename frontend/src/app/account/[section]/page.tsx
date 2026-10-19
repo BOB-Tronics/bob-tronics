@@ -1,104 +1,91 @@
-import { notFound } from "next/navigation";
-import AccountShell from "@/components/account/AccountShell";
-import Button from "@/components/ui/Button";
+﻿"use client";
+
+import { notFound, useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import AccountNotifications from "@/components/account/AccountNotifications";
+import AccountSupport from "@/components/account/AccountSupport";
+import AccountPayments from "@/components/account/AccountPayments";
+import AccountProfile from "@/components/account/AccountProfile";
 import Card from "@/components/ui/Card";
-import { formatPrice } from "@/lib/format";
+import EmptyState from "@/components/ui/EmptyState";
 import { getAddresses, getCurrentUser, getOrders } from "@/services/account";
+import type { Address, Order, User } from "@/types";
 
-// Simple account sections that share one page template.
-const sections: Record<string, { title: string; description: string }> = {
-  addresses: { title: "Addresses", description: "Where we deliver your orders." },
-  payments: { title: "Payments", description: "Your recent payments and saved methods." },
-  profile: { title: "Profile", description: "Your personal details." },
-  notifications: { title: "Notifications", description: "Order updates and offers." },
-  support: { title: "Support", description: "We are here to help with any order or device." },
-};
+const sections = ["addresses", "payments", "profile", "notifications", "support"];
 
-export default async function AccountSectionPage({ params }: PageProps<"/account/[section]">) {
-  const { section } = await params;
-  const config = sections[section];
-  if (!config) notFound();
+// Profile, payments and addresses need the signed-in customer's data, loaded on the client.
+export default function AccountSectionPage() {
+  const { section } = useParams<{ section: string }>();
+  const [user, setUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [user, addresses, orders] = await Promise.all([getCurrentUser(), getAddresses(), getOrders()]);
+  const needsUser = section === "payments" || section === "profile";
+  const needsOrders = section === "payments";
+  const needsAddresses = section === "addresses";
+
+  useEffect(() => {
+    if (!sections.includes(section)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [loadedUser, loadedOrders, loadedAddresses] = await Promise.all([
+          needsUser ? getCurrentUser() : Promise.resolve(null),
+          needsOrders ? getOrders() : Promise.resolve([] as Order[]),
+          needsAddresses ? getAddresses() : Promise.resolve([] as Address[]),
+        ]);
+        if (cancelled) return;
+        setUser(loadedUser);
+        setOrders(loadedOrders);
+        setAddresses(loadedAddresses);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "We could not load this section.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [section, needsUser, needsOrders, needsAddresses]);
+
+  if (!sections.includes(section)) notFound();
+  if (section === "notifications") return <AccountNotifications />;
+  if (section === "support") return <AccountSupport />;
+
+  if (loading) {
+    return <p className="rounded-2xl border border-line bg-white p-6 text-muted">Loading...</p>;
+  }
+  if (error) {
+    return <EmptyState title="Something went wrong" description={error} />;
+  }
+
+  if (section === "payments" && user) {
+    return <AccountPayments orders={orders} name={`${user.firstName} ${user.lastName}`} phone={user.phone} />;
+  }
+  if (section === "profile" && user) return <AccountProfile user={user} />;
 
   return (
-    <AccountShell title={config.title}>
-      <Card>
-        <p className="text-muted">{config.description}</p>
-
-        {section === "addresses" && (
-          <ul className="mt-5 space-y-4">
-            {addresses.map((address) => (
-              <li key={address.id} className="rounded-xl border border-line p-4">
-                <p className="font-semibold text-ink">
-                  {address.label} · {address.recipient}
-                  {address.isDefault && <span className="ml-2 text-xs font-medium text-primary">Default</span>}
-                </p>
-                <p className="mt-1 text-muted">
-                  {address.street}, {address.city} · {address.code}
-                </p>
-                <p className="text-muted">{address.phone}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {section === "payments" && (
-          <ul className="mt-5 divide-y divide-line">
-            {orders.map((order) => (
-              <li key={order.id} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="font-semibold text-ink">{order.paymentMethod}</p>
-                  <p className="text-sm text-muted">
-                    {order.id} · Ref {order.paymentReference}
-                  </p>
-                </div>
-                <p className="font-semibold text-ink">{formatPrice(order.total)}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {section === "profile" && (
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <ProfileField label="First name" value={user.firstName} />
-            <ProfileField label="Last name" value={user.lastName} />
-            <ProfileField label="Email" value={user.email} />
-            <ProfileField label="Phone" value={user.phone} />
-          </dl>
-        )}
-
-        {section === "notifications" && (
-          <ul className="mt-5 space-y-3">
-            <li className="rounded-xl bg-accent p-4 text-ink">
-              <p className="font-semibold text-primary">Order BT-10482 is packed</p>
-              <p className="mt-1 text-sm text-muted">Estimated delivery 03 Oct 2026.</p>
+    <Card>
+      <h2 className="text-lg font-bold">Saved addresses</h2>
+      {addresses.length === 0 ? (
+        <p className="mt-5 text-muted">No saved address yet. Your residence from sign-up appears here once it is set.</p>
+      ) : (
+        <ul className="mt-5 space-y-4">
+          {addresses.map((address) => (
+            <li key={address.id} className="rounded-xl border border-line p-4">
+              <p className="font-semibold text-ink">
+                {address.label} · {address.recipient}
+                {address.isDefault && <span className="ml-2 text-xs font-medium text-primary">Default</span>}
+              </p>
+              <p className="mt-1 text-muted">{[address.street, address.city, address.code].filter(Boolean).join(" · ")}</p>
+              <p className="text-muted">{address.phone}</p>
             </li>
-            <li className="rounded-xl border border-line p-4 text-ink">
-              <p className="font-semibold">Your IT request is scheduled</p>
-              <p className="mt-1 text-sm text-muted">Network & Setup · 06 Oct 2026 · 10:00 AM.</p>
-            </li>
-          </ul>
-        )}
-
-        {section === "support" && (
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Button href="/contact">Contact support</Button>
-            <Button variant="secondary" href="/account/orders">
-              Help with an order
-            </Button>
-          </div>
-        )}
-      </Card>
-    </AccountShell>
-  );
-}
-
-function ProfileField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-line p-4">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="mt-1 font-medium text-ink">{value}</dd>
-    </div>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }

@@ -39,15 +39,17 @@ const compactLinks = ["Support", "Returns & warranty", "Privacy", "Terms", "Secu
 export default function Footer() {
   const pathname = usePathname();
 
+  if (pathname === "/sign-in" || pathname === "/sign-up") return null;
+
   if (pathname !== "/") {
     return (
-      <footer className="mt-12 bg-navy text-sm text-white/80">
-        <div className="page-container flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p>BOB TRONICS · © 2026 · Demo store</p>
+      <footer className="mt-8 bg-[#080E28] text-[10px] leading-tight text-white/80">
+        <div className="page-container flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <p>BOB TRONICS &middot; &copy; 2026 &middot; Demo store</p>
           <p className="flex flex-wrap gap-x-1">
             {compactLinks.map((label, index) => (
               <span key={label}>
-                {index > 0 && " · "}
+                {index > 0 && <span aria-hidden="true">&nbsp;&middot;&nbsp;</span>}
                 <Link href="/contact" className="hover:text-white">
                   {label}
                 </Link>
@@ -93,3 +95,4 @@ export default function Footer() {
     </footer>
   );
 }
+

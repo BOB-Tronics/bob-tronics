@@ -519,3 +519,37 @@ export const testimonials: Testimonial[] = [
     text: "Our office network is finally reliable. Professional, thoughtful IT support.",
   },
 ];
+
+export interface Promotion {
+  id: string;
+  productId: string;
+  productName: string;
+  brand: string;
+  category: string;
+  discountType: string;
+  discountValue: number;
+  originalPrice: number;
+  discountedPrice: number;
+  savings: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+
+export const promotions: Promotion[] = [
+  {
+    id: "promo-1",
+    productId: "p1",
+    productName: 'MacBook Air 13" M3',
+    brand: "Apple",
+    category: "laptops",
+    discountType: "percentage",
+    discountValue: 10,
+    originalPrice: 14500,
+    discountedPrice: 13050,
+    savings: 1450,
+    startDate: "2026-10-01",
+    endDate: "2026-10-31",
+    isActive: true,
+  },
+];

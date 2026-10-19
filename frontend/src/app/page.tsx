@@ -11,21 +11,34 @@ import { ArrowUpRightIcon } from "@/components/ui/Icons";
 import SectionHeading from "@/components/ui/SectionHeading";
 import { getItServices, getTestimonials } from "@/services/account";
 import { getCategories, getProducts } from "@/services/products";
+import { applyPromotions, getActivePromotions } from "@/services/promotions";
+import type { Product } from "@/types";
 
 export default async function HomePage() {
-  const [categories, products, services, reviews] = await Promise.all([
+  const [categories, productList, services, reviews, promotions] = await Promise.all([
     getCategories(),
     getProducts(),
     getItServices(),
     getTestimonials(),
+    getActivePromotions(),
   ]);
+  const products = applyPromotions(productList, promotions);
 
-  const trending = products.filter((p) => p.trending);
-  const newArrivals = products.filter((p) => p.newArrival);
-  const featured = products.filter((p) => p.featured);
+  // The backend has no trending/new/featured flags, so each section falls back to a
+  // slice of the catalogue (newest first) and featured prefers products on promotion.
+  const flagged = (list: Product[], fallback: Product[]) => (list.length > 0 ? list : fallback);
+  const trending = flagged(products.filter((p) => p.trending), products.slice(0, 4));
+  const newArrivals = flagged(products.filter((p) => p.newArrival), products.length > 4 ? products.slice(4, 8) : products.slice(0, 4));
+  const onPromotion = products.filter((p) => p.discount);
+  const showDeals = products.filter((p) => p.featured).length === 0 && onPromotion.length > 0;
+  const featured = showDeals
+    ? onPromotion.slice(0, 4)
+    : flagged(products.filter((p) => p.featured), products.slice(8, 12).length > 0 ? products.slice(8, 12) : products.slice(0, 4));
+
+  const averageRating = reviews.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null;
 
   return (
-    <>
+    <div>
       <Hero />
       <TrustBar />
 
@@ -54,11 +67,15 @@ export default async function HomePage() {
         </section>
 
         <section>
-          <SectionHeading title="Featured Products" subtitle="Our specialists’ picks for work and play." />
+          <SectionHeading
+            title={showDeals ? "Deals of the Moment" : "Featured Products"}
+            subtitle={showDeals ? "Limited-time savings on selected products." : "Our specialists’ picks for work and play."}
+          />
           <ProductGrid products={featured} />
         </section>
 
-        <section>
+        {/* The design places the IT services block inside a white panel. */}
+        <section className="rounded-2xl border border-line/70 bg-white p-6 shadow-card sm:p-8">
           <SectionHeading
             title="More than devices. Real solutions."
             subtitle="IT Services that keep you connected and moving."
@@ -71,10 +88,15 @@ export default async function HomePage() {
           <ServiceCards services={services} />
         </section>
 
-        <section>
-          <SectionHeading title="Reviews from people like you" subtitle="4.9 / 5 average · 128 verified reviews" />
-          <ReviewCards reviews={reviews} />
-        </section>
+        {reviews.length > 0 && (
+          <section>
+            <SectionHeading
+              title="Reviews from people like you"
+              subtitle={averageRating ? `${averageRating} / 5 average · latest customer reviews` : "Latest customer reviews"}
+            />
+            <ReviewCards reviews={reviews} />
+          </section>
+        )}
 
         <section>
           <SectionHeading title="Why BOB TRONICS" subtitle="Carefully chosen technology. Confidence at every step." />
@@ -83,6 +105,6 @@ export default async function HomePage() {
 
         <Newsletter />
       </div>
-    </>
+    </div>
   );
 }
