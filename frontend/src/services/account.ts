@@ -178,7 +178,7 @@ export async function getItServices(): Promise<ItService[]> {
 }
 
 export async function googleLogin(credential: string): Promise<AuthTokens> {
-  const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/accounts/google-login/", {
+  const res = await apiFetch<{ tokens?: AuthTokens; access?: string; refresh?: string }>("/auth/google/", {
     method: "POST",
     body: { credential } as unknown as BodyInit,
   });
