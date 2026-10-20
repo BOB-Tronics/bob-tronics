@@ -136,11 +136,16 @@ body {
 }
 
 .auth-background {
-  background-color: #f4f4f6;
-  background-image:
-    linear-gradient(135deg, transparent 0 38%, rgba(255, 255, 255, .92) 38.2% 56%, transparent 56.2%),
-    linear-gradient(45deg, transparent 0 62%, rgba(225, 227, 232, .5) 62.2% 72%, transparent 72.2%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, .38) 0 2px, transparent 2px 16px);
+  background-image: url("/images/background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+:root[data-theme="dark"] .auth-background {
+  background-image: linear-gradient(rgba(8, 13, 34, 0.9), rgba(8, 13, 34, 0.9)), url("/images/background.png");
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .auth-welcome-panel {
