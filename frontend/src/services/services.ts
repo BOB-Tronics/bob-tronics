@@ -1,5 +1,5 @@
 // IT service request endpoints (login required).
-// UNVERIFIED: built from docs; confirm ServiceCreate and Service shapes with a signed-in customer.
+// Verified live with a signed-in customer; POST /services/ wraps the created service in data.
 import { authApiFetch } from "@/lib/auth";
 import { isMockMode } from "@/lib/api";
 import type { BackendService, ServiceCreateInput, ServiceRequest } from "@/types";
@@ -37,12 +37,13 @@ export async function createService(input: ServiceCreateInput): Promise<ServiceR
   if (isMockMode()) {
     return null;
   }
-  const response = await authApiFetch<BackendService>("/services/", {
+  const response = await authApiFetch<BackendService | { data?: BackendService }>("/services/", {
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!response) return null;
-  return mapBackendServiceToRequest(response);
+  const service = response && "service_id" in response ? response : response?.data;
+  if (!service) return null;
+  return mapBackendServiceToRequest(service);
 }
 
 export async function getService(id: string | number): Promise<ServiceRequest | null> {

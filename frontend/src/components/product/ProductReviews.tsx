@@ -13,6 +13,18 @@ import { createReview, getProductReviews, type Review } from "@/services/reviews
 
 const ratingOptions = [5, 4, 3, 2, 1].map((value) => ({ value: String(value), label: `${value} star${value === 1 ? "" : "s"}` }));
 
+function validationErrors(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError) || typeof error.data !== "object" || !error.data) return {};
+  const response = error.data as Record<string, unknown>;
+  const errorBody = response.error && typeof response.error === "object" ? response.error as Record<string, unknown> : {};
+  const details = (response.details ?? errorBody.details ?? response.errors) as Record<string, unknown> | undefined;
+  if (!details || typeof details !== "object" || Array.isArray(details)) return {};
+  return Object.fromEntries(Object.entries(details).flatMap(([field, value]) => {
+    const message = typeof value === "string" ? value : Array.isArray(value) ? value.find((part): part is string => typeof part === "string") : undefined;
+    return message ? [[field, message]] : [];
+  }));
+}
+
 // Customer reviews for one product: GET /reviews/ (filtered by product) and POST /reviews/.
 export default function ProductReviews({ productId }: { productId: string }) {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -23,6 +35,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [success, setSuccess] = useState("");
 
@@ -59,6 +72,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     event.preventDefault();
     setSubmitting(true);
     setFormError("");
+    setFieldErrors({});
     setSuccess("");
     try {
       const created = await createReview({ product: Number(productId), rating: Number(rating), comment: comment.trim() });
@@ -70,7 +84,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
       if (err instanceof ApiError && err.status === 401) {
         setNeedsSignIn(true);
       } else {
-        setFormError(err instanceof Error ? err.message : "We could not submit your review. Please try again.");
+        const errors = validationErrors(err);
+        setFieldErrors(errors);
+        setFormError(Object.keys(errors).length ? "Please check the review fields below." : err instanceof Error ? err.message : "We could not submit your review. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -116,6 +132,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
             />
           </label>
           {formError && <p role="alert" className="text-sm text-red-600">{formError}</p>}
+          {Object.entries(fieldErrors).map(([field, message]) => <p key={field} className="text-sm text-red-600">{field}: {message}</p>)}
           <Button type="submit" loading={submitting}>
             Submit review
           </Button>

@@ -73,7 +73,7 @@ export default function OrderDetailPage() {
     <>
       <div className="flex flex-wrap gap-2">
         <OrderStatusBadge status={order.status} />
-        <Badge tone="success">{order.paymentStatus === "Paid" ? "Payment received" : "Payment pending"}</Badge>
+        <Badge tone="success">Payment · {order.paymentStatus}</Badge>
         {delivery && <Badge tone="accent">Delivery · {delivery.statusDisplay}</Badge>}
       </div>
 
@@ -83,7 +83,7 @@ export default function OrderDetailPage() {
           Placed {formatDate(order.placedAt)}
           {order.estimatedDelivery
             ? ` · Delivery estimated ${formatDate(order.estimatedDelivery)}`
-            : ` · Status: ${order.rawStatus ?? order.status}`}
+            : " · Delivery estimated —"}
         </p>
         <div className="mt-6">
           <OrderTimeline steps={order.timeline} />
@@ -150,9 +150,10 @@ export default function OrderDetailPage() {
           <h2 className="text-xl font-bold text-ink">Delivery & Payment</h2>
           <div className="mt-5 space-y-3 text-ink">
             <p className="font-semibold">{order.shippingAddress || delivery?.deliveryAddress || "Address not provided"}</p>
+            <p>Delivery status · {delivery?.statusDisplay ?? order.deliveryStatus ?? "—"}</p>
             {order.phone && <p>{order.phone}</p>}
             <p>
-              {delivery?.deliveryMethodDisplay || order.deliveryMethod || "Standard delivery"}
+              {delivery?.deliveryMethodDisplay || order.deliveryMethod || "—"}
               {order.delivery > 0 && ` · ${formatPrice(order.delivery)}`}
             </p>
             {delivery ? (
@@ -172,7 +173,7 @@ export default function OrderDetailPage() {
             ) : (
               <p className="text-sm text-muted">No delivery has been scheduled for this order yet.</p>
             )}
-            <p>{order.paymentMethod || "Payment on confirmation"} · {order.paymentStatus}</p>
+            <p>{order.paymentMethod || "—"} · {order.paymentStatus}</p>
             {order.paymentReference && <p className="text-sm text-muted">Payment reference {order.paymentReference}</p>}
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">

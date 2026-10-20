@@ -29,13 +29,18 @@ export default function OrderSummary({
       <ul className="mt-5 space-y-4">
         {lines.map(({ item, product, lineTotal }) => (
           <li key={product.id} className="flex gap-4">
-            <Image
-              src={product.images[0]}
-              alt={product.name}
-              width={112}
-              height={112}
-              className="h-24 w-24 shrink-0 rounded-lg object-cover sm:h-28 sm:w-28"
-            />
+            {product.images[0] ? (
+              <Image
+                src={product.images[0]}
+                alt={product.name}
+                width={112}
+                height={112}
+                unoptimized={!product.images[0].startsWith("/")}
+                className="h-24 w-24 shrink-0 rounded-lg object-cover sm:h-28 sm:w-28"
+              />
+            ) : (
+              <div aria-hidden="true" className="h-24 w-24 shrink-0 rounded-lg bg-surface sm:h-28 sm:w-28" />
+            )}
             <div className="min-w-0">
               <p className="font-semibold text-ink">{product.name}</p>
               <p className="mt-1 text-sm text-muted">

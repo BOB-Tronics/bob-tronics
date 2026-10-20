@@ -15,35 +15,51 @@ interface StoredCart {
 interface CartContextValue {
   items: CartItem[];
   promoCode: string | null;
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItem) => Promise<boolean>;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   applyPromo: (code: string) => void;
   removePromo: () => void;
-  clearCart: () => void;
+  clearCart: () => Promise<void>;
   // Re-reads the backend cart (used after "move to cart" from the wishlist).
   reload: () => Promise<void>;
   totalQuantity: number;
+  clearError: string;
+  cartError: string;
+  cartErrorProductId: string | null;
+  backendLoading: boolean;
+  backendError: string;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+function cartFailureMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status === 400) return error.message;
+  return "Something went wrong. Please try again.";
+}
 
 // GET /cart/ may return a plain list of items or an object wrapping them.
 // UNVERIFIED: shape not yet confirmed with a signed-in customer.
 type BackendCartResponse =
   | BackendCartItem[]
-  | { items?: BackendCartItem[]; results?: BackendCartItem[]; cart_items?: BackendCartItem[] };
+  | { items?: BackendCartItem[]; results?: BackendCartItem[]; cart_items?: BackendCartItem[]; data?: { items?: BackendCartItem[] } | BackendCartItem };
 
 function cartItemsFrom(response: BackendCartResponse | null): BackendCartItem[] {
   if (!response) return [];
   if (Array.isArray(response)) return response;
-  return response.items ?? response.results ?? response.cart_items ?? [];
+  const nested = response.data;
+  return response.items ?? response.results ?? response.cart_items ?? (nested && !Array.isArray(nested) && "cart_item_id" in nested ? [nested] : nested && !Array.isArray(nested) ? nested.items ?? [] : []);
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [clearError, setClearError] = useState("");
+  const [cartError, setCartError] = useState("");
+  const [cartErrorProductId, setCartErrorProductId] = useState<string | null>(null);
+  const [backendLoading, setBackendLoading] = useState(true);
+  const [backendError, setBackendError] = useState("");
   // Maps frontend productId -> backend cart_item_id for authenticated cart operations.
   const [cartItemIdMap, setCartItemIdMap] = useState<Map<string, number>>(new Map());
 
@@ -103,6 +119,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const loadBackendCart = useCallback(async () => {
+    setBackendLoading(true);
+    setBackendError("");
     try {
       await mergeGuestCart();
       const response = await authApiFetch<BackendCartResponse>("/cart/");
@@ -116,26 +134,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       setItems(mapped);
       setCartItemIdMap(map);
-    } catch {
-      // On error, keep the current cart; pages show their own error states.
+    } catch (error) {
+      setBackendError(cartFailureMessage(error));
+    } finally {
+      setBackendLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated()) return;
+    if (!isAuthenticated()) { setBackendLoading(false); return; }
     void loadBackendCart();
   }, [loadBackendCart]);
 
   // ---- Shared mutations ----
 
-  function addItem(item: CartItem) {
+  async function addItem(item: CartItem): Promise<boolean> {
+    setCartError("");
+    setCartErrorProductId(null);
     if (isAuthenticated()) {
-      void (async () => {
-        try {
-          const response = await authApiFetch<BackendCartItem>("/cart/items/", {
+      try {
+          const payload = await authApiFetch<BackendCartItem | { data?: BackendCartItem }>("/cart/items/", {
             method: "POST",
             body: JSON.stringify({ product_id: Number(item.productId), quantity: item.quantity }),
           });
+          const response: BackendCartItem | null = payload && "data" in payload ? payload.data ?? null : payload as BackendCartItem | null;
           if (response?.cart_item_id !== undefined) {
             setCartItemIdMap((m) => new Map(m).set(item.productId, response.cart_item_id));
           }
@@ -148,11 +170,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
             return [...current, { productId: item.productId, quantity: response?.quantity ?? item.quantity }];
           });
-        } catch {
-          // Backend error surfaces via caller error handling.
-        }
-      })();
-      return;
+        return true;
+      } catch (error) {
+        setCartError(cartFailureMessage(error));
+        setCartErrorProductId(item.productId);
+        return false;
+      }
     }
 
     setItems((current) => {
@@ -166,6 +189,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...current, item];
     });
+    return true;
   }
 
   function updateQuantity(productId: string, quantity: number) {
@@ -183,8 +207,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           setItems((current) =>
             current.map((i) => (i.productId === productId ? { ...i, quantity } : i))
           );
-        } catch {
-          // Backend error surfaces via caller error handling.
+        } catch (error) {
+          setCartError(cartFailureMessage(error));
+          setCartErrorProductId(productId);
         }
       })();
       return;
@@ -208,8 +233,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             next.delete(productId);
             return next;
           });
-        } catch {
-          // Backend error surfaces via caller error handling.
+        } catch (error) {
+          setCartError(cartFailureMessage(error));
+          setCartErrorProductId(productId);
         }
       })();
       return;
@@ -226,21 +252,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setPromoCode(null);
   }
 
-  function clearCart() {
+  async function clearCart() {
+    setClearError("");
     if (isAuthenticated()) {
-      void (async () => {
+      try {
         try {
-          // UNVERIFIED: the docs list /cart/clear/ without a method; DELETE is tried first, then POST.
-          try {
-            await authApiFetch("/cart/clear/", { method: "DELETE" });
-          } catch (error) {
-            if (!(error instanceof ApiError) || error.status !== 405) throw error;
-            await authApiFetch("/cart/clear/", { method: "POST" });
-          }
-        } catch {
-          // Backend error surfaces via caller error handling.
+          await authApiFetch("/cart/clear/", { method: "DELETE" });
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 405) throw error;
+          await authApiFetch("/cart/clear/", { method: "POST" });
         }
-      })();
+      } catch (error) {
+        setClearError(cartFailureMessage(error));
+        return;
+      }
+    } else {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* Continue with the in-memory guest cart. */ }
     }
     setItems([]);
     setCartItemIdMap(new Map());
@@ -262,6 +289,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         reload: loadBackendCart,
         totalQuantity,
+        clearError,
+        cartError,
+        cartErrorProductId,
+        backendLoading,
+        backendError,
       }}
     >
       {children}

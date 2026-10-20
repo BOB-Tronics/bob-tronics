@@ -26,6 +26,9 @@ export default function CartView({ products }: { products: Product[] }) {
   const lines = buildCartLines(cart.items, products);
   const totals = getCartTotals(lines, cart.promoCode);
 
+  if (cart.backendLoading) return <p role="status" className="rounded-2xl border border-line bg-white p-6 text-muted">Loading your cart…</p>;
+  if (cart.backendError) return <div role="alert" className="rounded-2xl border border-line bg-white p-6 text-muted">{cart.backendError}<button onClick={() => void cart.reload()} className="ml-3 font-semibold text-primary underline">Retry</button></div>;
+
   if (lines.length === 0) {
     return (
       <EmptyState
@@ -55,9 +58,11 @@ export default function CartView({ products }: { products: Product[] }) {
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-start">
       <div className="space-y-6">
         <Card>
-          <h2 className="text-xl font-bold text-ink">
+          <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold text-ink">
             Shopping bag · {cart.totalQuantity} {cart.totalQuantity === 1 ? "item" : "items"}
-          </h2>
+          </h2><Button variant="secondary" onClick={() => { if (window.confirm("Clear all items from your cart?")) void cart.clearCart(); }}>Clear cart</Button></div>
+          {cart.cartError && <p role="alert" className="mt-3 text-sm text-red-600">{cart.cartError}</p>}
+          {cart.clearError && <p role="alert" className="mt-3 text-sm text-red-600">{cart.clearError}<button onClick={() => void cart.clearCart()} className="ml-2 underline">Retry</button></p>}
           <ul className="mt-5 divide-y divide-line">
             {lines.map(({ item, product, lineTotal }) => (
               <li key={product.id} className="flex flex-col gap-4 py-5 first:pt-0 last:pb-0 sm:flex-row">

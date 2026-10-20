@@ -8,6 +8,8 @@ export interface Filters {
   brands: string[];
   inStockOnly: boolean;
   minRating: number;
+  minPrice: number | null;
+  maxPrice: number | null;
 }
 
 function toggleValue<T>(list: T[], value: T): T[] {
@@ -62,6 +64,12 @@ export default function FilterSidebar({
         <p className="text-sm text-muted">
           {formatPrice(minPrice)} — {formatPrice(maxPrice)}
         </p>
+        <div className="flex gap-2">
+          <label className="sr-only" htmlFor="min-price">Minimum price</label>
+          <input id="min-price" type="number" min="0" placeholder="Min" value={filters.minPrice ?? ""} onChange={(event) => onChange({ ...filters, minPrice: event.target.value ? Number(event.target.value) : null })} className="h-9 w-1/2 rounded border border-line px-2 text-sm" />
+          <label className="sr-only" htmlFor="max-price">Maximum price</label>
+          <input id="max-price" type="number" min="0" placeholder="Max" value={filters.maxPrice ?? ""} onChange={(event) => onChange({ ...filters, maxPrice: event.target.value ? Number(event.target.value) : null })} className="h-9 w-1/2 rounded border border-line px-2 text-sm" />
+        </div>
       </FilterGroup>
 
       <FilterGroup title="Availability">

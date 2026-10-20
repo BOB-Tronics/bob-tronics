@@ -74,7 +74,7 @@ export default function Header() {
 
       <div className="page-container flex h-16 items-center justify-between gap-4 lg:h-20">
         <Link href="/" className="flex items-center gap-2" aria-label="BOB TRONICS home">
-          <Image src="/images/logo.png" alt="" width={48} height={47} className="h-10 w-auto lg:h-12" priority />
+          <Image src="/images/logo.png" alt="" width={48} height={47} className="h-10 w-auto lg:h-12" style={{ width: "auto" }} priority />
           <span className="leading-tight">
             <span className="block whitespace-nowrap text-base font-extrabold tracking-tight text-primary sm:text-lg lg:text-2xl">
               BOB TRONICS

@@ -1,7 +1,7 @@
 // Account service: orders, profile, addresses and the small lists the account pages need.
 // Everything here needs a signed-in customer, so it must be called from client components
 // (the browser holds the tokens; see authApiFetch).
-// UNVERIFIED: order field names/status values are built from docs; confirm with a real order.
+// Verified live: order detail responses wrap data, and delivery is a nested object.
 import { authApiFetch } from "@/lib/auth";
 import { isMockMode } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -63,22 +63,24 @@ function buildTimeline(status: OrderStatus, createdAt: string, updatedAt: string
 
 function mapBackendOrderToOrder(item: BackendOrderList): Order {
   const status = toOrderStatus(item.status, item.status_display);
+  const delivery = typeof item.delivery === "object" && item.delivery ? item.delivery : null;
   return {
     id: String(item.order_id),
     date: item.order_date || item.created_at,
     placedAt: item.order_date || item.created_at,
-    estimatedDelivery: "",
+    estimatedDelivery: item.estimated_delivery ?? delivery?.estimated_delivery ?? "",
     status,
     rawStatus: item.status_display || item.status,
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status ?? "—",
     items: [],
     subtotal: Number(item.total_amount) || 0,
     delivery: 0,
     discount: 0,
     total: Number(item.total_amount) || 0,
-    deliveryMethod: "",
-    paymentMethod: "",
-    paymentReference: "",
+    deliveryMethod: delivery?.delivery_method_display ?? delivery?.delivery_method ?? "\u2014",
+    paymentMethod: item.payment_method ?? "—",
+    paymentReference: item.payment_reference ?? "—",
+    deliveryStatus: delivery?.status_display ?? delivery?.status ?? item.delivery_status ?? "\u2014",
     shippingAddress: item.shipping_address,
     phone: item.phone,
     timeline: buildTimeline(status, item.created_at, item.created_at),
@@ -87,6 +89,7 @@ function mapBackendOrderToOrder(item: BackendOrderList): Order {
 
 function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
   const status = toOrderStatus(item.status, item.status_display);
+  const delivery = typeof item.delivery === "object" && item.delivery ? item.delivery : null;
   const items = (item.items ?? []).map((line) => ({
     productId: String(line.product?.product_id ?? ""),
     name: line.product?.name ?? "Product",
@@ -102,18 +105,19 @@ function mapBackendOrderDetailToOrder(item: BackendOrder): Order {
     id: String(item.order_id),
     date: item.order_date || item.created_at,
     placedAt: item.order_date || item.created_at,
-    estimatedDelivery: "",
+    estimatedDelivery: item.estimated_delivery ?? delivery?.estimated_delivery ?? "",
     status,
     rawStatus: item.status_display || item.status,
-    paymentStatus: "Paid",
+    paymentStatus: item.payment_status ?? "—",
     items,
     subtotal: subtotal || total,
     delivery: Math.max(0, total - (subtotal || total)),
     discount,
     total,
-    deliveryMethod: typeof item.delivery === "string" ? item.delivery : "",
-    paymentMethod: "",
-    paymentReference: "",
+    deliveryMethod: typeof item.delivery === "string" ? item.delivery : delivery?.delivery_method_display ?? delivery?.delivery_method ?? "\u2014",
+    paymentMethod: item.payment_method ?? "—",
+    paymentReference: item.payment_reference ?? "—",
+    deliveryStatus: delivery?.status_display ?? delivery?.status ?? item.delivery_status ?? "\u2014",
     shippingAddress: item.shipping_address,
     phone: item.phone,
     timeline: buildTimeline(status, item.created_at, item.updated_at),
@@ -133,28 +137,49 @@ export async function getCurrentUser(): Promise<User> {
     lastName: profile.last_name,
     email: profile.email,
     phone: profile.phone,
+    residence: profile.residence,
   };
 }
 
-type OrderList = BackendOrderList[] | { count: number; results: BackendOrderList[] };
+// UNVERIFIED: profile PATCH contract is user supplied; do not live-test against an existing account.
+export async function updateProfile(input: Pick<BackendUserProfile, "first_name" | "last_name" | "phone" | "residence">) {
+  return authApiFetch<BackendUserProfile>("/accounts/me/", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// Field names verified with an intentionally wrong current password; successful changes remain unverified.
+export async function changePassword(input: { current_password: string; new_password: string; password_confirm: string }) {
+  return authApiFetch<{ success?: boolean; message?: string }>("/accounts/change-password/", { method: "POST", body: JSON.stringify(input) });
+}
+
+function orderListItems(payload: unknown): BackendOrderList[] {
+  if (Array.isArray(payload)) return payload as BackendOrderList[];
+  if (!payload || typeof payload !== "object") return [];
+  const outer = payload as { results?: unknown; data?: unknown };
+  if (Array.isArray(outer.results)) return outer.results as BackendOrderList[];
+  if (Array.isArray(outer.data)) return outer.data as BackendOrderList[];
+  if (outer.data && typeof outer.data === "object") {
+    const nested = outer.data as { results?: unknown };
+    if (Array.isArray(nested.results)) return nested.results as BackendOrderList[];
+  }
+  return [];
+}
 
 export async function getOrders(): Promise<Order[]> {
   if (isMockMode()) {
     return orders;
   }
-  const response = await authApiFetch<OrderList>("/orders/");
-  if (!response) return [];
-  const results = Array.isArray(response) ? response : response.results ?? [];
-  return results.map(mapBackendOrderToOrder);
+  const response = await authApiFetch<unknown>("/orders/");
+  return orderListItems(response).map(mapBackendOrderToOrder);
 }
 
 export async function getOrder(id: string): Promise<Order | undefined> {
   if (isMockMode()) {
     return orders.find((o) => o.id === id);
   }
-  const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/`);
-  if (!response || !response.order_id) return undefined;
-  return mapBackendOrderDetailToOrder(response);
+  const response = await authApiFetch<BackendOrder | { success: boolean; data: BackendOrder }>(`/orders/${Number(id)}/`);
+  const detail = response && "order_id" in response ? response : response?.data;
+  if (!detail || !detail.order_id) return undefined;
+  return mapBackendOrderDetailToOrder(detail);
 }
 
 // Throws ApiError so the order page can show why a cancellation was refused.
@@ -162,11 +187,12 @@ export async function cancelOrder(id: string): Promise<Order | undefined> {
   if (isMockMode()) {
     return undefined;
   }
-  const response = await authApiFetch<BackendOrder>(`/orders/${Number(id)}/cancel/`, {
+  const response = await authApiFetch<BackendOrder | { success?: boolean; data?: BackendOrder }>(`/orders/${Number(id)}/cancel/`, {
     method: "POST",
   });
-  if (!response || !response.order_id) return undefined;
-  return mapBackendOrderDetailToOrder(response);
+  const detail = response && "order_id" in response ? response : response?.data;
+  if (!detail || !detail.order_id) return undefined;
+  return mapBackendOrderDetailToOrder(detail);
 }
 
 // The backend has no address book; the only saved address is the residence and phone

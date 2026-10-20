@@ -32,6 +32,7 @@ export default function OrdersTable({ orders }: { orders: Order[] }) {
               <span>{formatDate(order.date)}</span>
               <span className="font-semibold text-ink">{formatPrice(order.total)}</span>
             </div>
+            <p className="mt-2 text-xs text-muted">{order.paymentStatus} · {order.paymentMethod} · {order.paymentReference} · Delivery {order.estimatedDelivery || "—"}</p>
           </Link>
         ))}
       </div>
@@ -44,7 +45,7 @@ export default function OrdersTable({ orders }: { orders: Order[] }) {
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Status / payment</th>
               <th className="px-4 py-3">Action</th>
             </tr>
           </thead>
@@ -55,7 +56,7 @@ export default function OrdersTable({ orders }: { orders: Order[] }) {
                 <td className="px-4 py-4 text-ink">{formatDate(order.date)}</td>
                 <td className="px-4 py-4 text-ink">{describeItems(order)}</td>
                 <td className="px-4 py-4 text-ink">{formatPrice(order.total)}</td>
-                <td className="px-4 py-4 text-ink">{order.status}</td>
+                <td className="px-4 py-4 text-ink">{order.status}<p className="mt-1 text-xs text-muted">{order.paymentStatus} · {order.paymentMethod} · {order.paymentReference} · Delivery {order.estimatedDelivery || "—"}</p></td>
                 <td className="px-4 py-4">
                   <Link
                     href={`/account/orders/${order.id}`}

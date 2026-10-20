@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category, CategorySlug, Product } from "@/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import Button from "@/components/ui/Button";
 import { CloseIcon, GridIcon } from "@/components/ui/Icons";
 import FilterSidebar, { type Filters } from "./FilterSidebar";
+import { getProducts } from "@/services/products";
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -30,15 +31,39 @@ export default function ShopResults({
     brands: [],
     inStockOnly: false,
     minRating: 0,
+    minPrice: null,
+    maxPrice: null,
   });
+  const [serverProducts, setServerProducts] = useState(products);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    getProducts({ category: filters.categories.length === 1 ? filters.categories[0] : undefined,
+      categoryId: filters.categories.length === 1 ? categories.find((item) => item.slug === filters.categories[0])?.backendId : undefined,
+      brand: filters.brands.length === 1 ? filters.brands[0] : undefined,
+      minPrice: filters.minPrice ?? undefined, maxPrice: filters.maxPrice ?? undefined,
+      inStock: filters.inStockOnly, search })
+      .then((result) => { if (!cancelled) setServerProducts(result); })
+      .catch(() => { if (!cancelled) setError("Products could not be loaded. Please try again."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [attempt, categories, filters.categories, filters.brands, filters.minPrice, filters.maxPrice, filters.inStockOnly, search]);
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const visible = products
+  const visible = serverProducts
     .filter((p) => filters.categories.length === 0 || filters.categories.includes(p.category))
     .filter((p) => filters.brands.length === 0 || filters.brands.includes(p.brand))
-    .filter((p) => !filters.inStockOnly || p.stock !== "pre-order")
+    .filter((p) => !filters.inStockOnly || p.stockCount > 0)
     .filter((p) => p.rating >= filters.minRating)
+    .filter((p) => filters.categories.length <= 1 || filters.categories.includes(p.category))
+    .filter((p) => filters.brands.length <= 1 || filters.brands.includes(p.brand))
+    .filter((p) => filters.minPrice === null || p.price >= filters.minPrice)
+    .filter((p) => filters.maxPrice === null || p.price <= filters.maxPrice)
     .sort((a, b) => {
       if (sort === "price-asc") return a.price - b.price;
       if (sort === "price-desc") return b.price - a.price;
@@ -74,7 +99,7 @@ export default function ShopResults({
       <div className="min-w-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-semibold text-ink">
-            Showing {visible.length === 0 ? 0 : 1}–{visible.length} of {products.length} products
+            Showing {visible.length === 0 ? 0 : 1}–{visible.length} of {serverProducts.length} products
             {search && <span className="font-normal text-muted"> for “{search}”</span>}
           </p>
           <div className="flex items-center gap-2">
@@ -115,7 +140,7 @@ export default function ShopResults({
         )}
 
         <div className="mt-5">
-          <ProductGrid products={visible} columns={3} />
+          {error ? <p role="alert" className="text-sm text-red-600">{error}<button type="button" onClick={() => setAttempt((value) => value + 1)} className="ml-2 underline">Retry</button></p> : loading ? <p role="status" className="py-6 text-center text-sm text-muted">Loading products…</p> : <ProductGrid products={visible} columns={3} />}
         </div>
       </div>
     </div>

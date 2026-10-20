@@ -87,12 +87,10 @@ function mapBackendFeedback(value: unknown, index: number): Review {
 }
 
 function extractItems(response: unknown): unknown[] {
-  const record = asRecord(response);
-  return Array.isArray(response)
-    ? response
-    : Array.isArray(record?.results)
-      ? record.results
-      : [];
+  const outer = asRecord(response);
+  const payload = outer?.data ?? response;
+  const record = asRecord(payload);
+  return Array.isArray(payload) ? payload : Array.isArray(record?.results) ? record.results : [];
 }
 
 function logReviewShape(endpoint: string, response: unknown) {
@@ -134,8 +132,10 @@ export async function getReview(id: string | number): Promise<Review | null> {
   }
   try {
     const response = await apiFetch<unknown>(`/reviews/${id}/`);
-    if (!response) return null;
-    return mapBackendFeedback(response, 0);
+    const record = asRecord(response);
+    const payload = record?.data ?? response;
+    if (!payload) return null;
+    return mapBackendFeedback(payload, 0);
   } catch {
     return null;
   }
@@ -150,6 +150,8 @@ export async function createReview(input: CreateReviewInput): Promise<Review | n
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!response) return null;
-  return mapBackendFeedback(response, 0);
+  const record = asRecord(response);
+  const payload = record?.data ?? response;
+  if (!payload) return null;
+  return mapBackendFeedback(payload, 0);
 }

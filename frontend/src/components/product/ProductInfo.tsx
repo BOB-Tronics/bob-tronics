@@ -21,7 +21,7 @@ const promises = [
 
 export default function ProductInfo({ product }: { product: Product }) {
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, cartError, cartErrorProductId } = useCart();
   const wishlist = useWishlist();
   // Backend products have no finishes/configurations yet, so both may be empty.
   const [finish, setFinish] = useState<string | undefined>(product.finishes[0]);
@@ -39,19 +39,19 @@ export default function ProductInfo({ product }: { product: Product }) {
         ? `Low stock · only ${product.stockCount} left`
         : "Pre-order";
 
-  function addToCart() {
-    addItem({ productId: product.id, quantity, finish, configuration: config?.label });
+  async function addToCart() {
+    return addItem({ productId: product.id, quantity, finish, configuration: config?.label });
   }
 
-  function handleAdd() {
-    addToCart();
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+  async function handleAdd() {
+    if (await addToCart()) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
   }
 
-  function handleBuyNow() {
-    addToCart();
-    router.push("/checkout");
+  async function handleBuyNow() {
+    if (await addToCart()) router.push("/checkout");
   }
 
   return (
@@ -138,6 +138,7 @@ export default function ProductInfo({ product }: { product: Product }) {
           Buy Now
         </Button>
       </div>
+      {cartErrorProductId === product.id && cartError && <p role="alert" className="text-sm text-red-600">{cartError}</p>}
 
       <ul className="space-y-2 rounded-xl border border-line bg-white p-4 text-sm text-ink">
         {promises.map((text) => (

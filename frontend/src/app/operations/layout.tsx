@@ -28,7 +28,7 @@ export default function OperationsLayout({ children }: { children: ReactNode }) 
         const profile = await getMe();
         if (!profile) throw new Error("Missing account profile");
         if (!cancelled) {
-          if (profile.role !== "super_admin" && profile.role !== "admin") {
+          if (profile.role !== "super_admin") {
             router.replace("/account");
             return;
           }
