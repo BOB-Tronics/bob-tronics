@@ -1,7 +1,7 @@
-﻿import SignUpForm from "@/components/auth/SignUpForm";
+import AuthExperience from "@/components/auth/AuthExperience";
 
 export const metadata = { title: "Create Account · BOB TRONICS" };
 
 export default function SignUpPage() {
-  return <SignUpForm />;
+  return <AuthExperience initialMode="sign-up" />;
 }

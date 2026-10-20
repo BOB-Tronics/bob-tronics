@@ -136,7 +136,16 @@ body {
 }
 
 .auth-background {
-  background-color: transparent;
+  background-image: url("/images/background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+:root[data-theme="dark"] .auth-background {
+  background-image: linear-gradient(rgba(8, 13, 34, 0.9), rgba(8, 13, 34, 0.9)), url("/images/background.png");
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .auth-welcome-panel {
