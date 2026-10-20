@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getCategories } from "@/services/products";
-import type { Category } from "@/types";
+import { useState } from "react";
+import { useTheme } from "@/components/layout/Providers";
+import { categories } from "@/lib/mock-data";
 import { useCart } from "@/hooks/useCart";
 import Button from "@/components/ui/Button";
 import {
@@ -16,6 +16,8 @@ import {
   HeartIcon,
   MenuIcon,
   SearchIcon,
+  MoonIcon,
+  SunIcon,
   UserIcon,
 } from "@/components/ui/Icons";
 
@@ -30,6 +32,7 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const { totalQuantity } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   // Categories come from GET /catalog/categories/ (empty until loaded or if the backend is down).
@@ -66,10 +69,6 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
       <div className="bg-navy text-xs text-white/80">
-        <div className="page-container flex h-9 items-center justify-between">
-          <p>Genuine tech. Expert support. Delivered.</p>
-          <p className="hidden sm:block">Kigali delivery from RWF 80 · Demo store</p>
-        </div>
       </div>
 
       <div className="page-container flex h-16 items-center justify-between gap-4 lg:h-20">
@@ -111,6 +110,16 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            className={iconButton}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={theme === "dark"}
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
           <Link href="/shop" className={`${iconButton} hidden sm:flex`} aria-label="Search products">
             <SearchIcon />
           </Link>

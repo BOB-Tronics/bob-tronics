@@ -18,6 +18,7 @@ interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
+  slug: string;
   description: string;
   brand: string;
   price: string;
@@ -78,7 +79,7 @@ function mapBackendProductToProduct(item: BackendProduct): Product {
 
   return {
     id: String(item.product_id),
-    slug: String(item.product_id),
+    slug: item.slug ?? String(item.product_id),
     name: item.name,
     brand: item.brand,
     category: slugify(item.category_name),
@@ -165,6 +166,10 @@ export async function getProduct(slug: string): Promise<Product | undefined> {
   if (isMockMode()) {
     return getProductSync(slug);
   }
+
+  // Backend uses integer product_id in the URL path.
+  const numericId = Number(productIdOrSlug);
+  const id = Number.isFinite(numericId) ? numericId : productIdOrSlug;
 
   try {
     const response = unwrap(await apiFetch<BackendProduct | { data?: BackendProduct }>(`/catalog/products/${slug}/`));

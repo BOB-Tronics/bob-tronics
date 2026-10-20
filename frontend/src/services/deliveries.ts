@@ -19,6 +19,14 @@ export interface DeliveryTracking {
   updatedAt: string;
 }
 
+export interface DeliveryMethod {
+  id: string;
+  name: string;
+  displayName: string;
+  fee: number;
+  estimatedDays: number;
+}
+
 function mapBackendDeliveryTracking(item: BackendDeliveryTracking): DeliveryTracking {
   return {
     trackingNumber: item.tracking_number,
@@ -88,5 +96,19 @@ export async function getDeliveryForOrder(orderId: string | number): Promise<Del
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
+  }
+}
+
+// Available delivery methods and fees (login required).
+export async function getDeliveryMethods(): Promise<DeliveryMethod[]> {
+  if (useMock()) {
+    return [];
+  }
+  try {
+    const response = await apiFetch<{ results: Array<{ delivery_method: string; delivery_method_display: string; shipping_fee: string }> }>("/deliveries/methods/");
+    if (!response || !response.results) return [];
+    return response.results.map(mapBackendDeliveryMethod);
+  } catch {
+    return [];
   }
 }

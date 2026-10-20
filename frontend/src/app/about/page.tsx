@@ -7,14 +7,14 @@ import PageHeader from "@/components/ui/PageHeader";
 export const metadata = { title: "About · BOB TRONICS" };
 
 const principles = [
-  { title: "Integrity", text: "Genuine products. Transparent advice. Clear commitments.", Icon: ShieldIcon },
+  { title: "Integrity", text: " products. Transparent advice. Clear commitments.", Icon: ShieldIcon },
   { title: "Expertise", text: "Practical knowledge that turns questions into confident decisions.", Icon: HeadsetIcon },
   { title: "Care", text: "People-first support, long after the purchase.", Icon: HeartIcon },
 ];
 
 export default function AboutPage() {
   return (
-    <div className="auth-background">
+    <div className="auth-background text-ink">
       <div className="page-container pb-14">
         <PageHeader crumbs={[{ label: "Home", href: "/" }, { label: "About" }]} title="About BOB TRONICS" subtitle="Genuine tech. Expert support. Delivered." />
         <section className="grid overflow-hidden rounded-3xl bg-navy text-white shadow-card lg:min-h-[560px] lg:grid-cols-[0.8fr_1.2fr]">

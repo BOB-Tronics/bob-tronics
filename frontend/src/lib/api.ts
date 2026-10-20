@@ -2,7 +2,7 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export const USE_MOCK =
-  process.env.NEXT_PUBLIC_USE_MOCK === undefined ? true : process.env.NEXT_PUBLIC_USE_MOCK === "true";
+  process.env.NEXT_PUBLIC_USE_MOCK === undefined ? false : process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export function isMockMode(): boolean {
   return USE_MOCK;

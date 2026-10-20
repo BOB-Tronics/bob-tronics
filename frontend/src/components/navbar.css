@@ -1,0 +1,167 @@
+.site-navbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 10px clamp(20px, 4vw, 58px);
+  border-bottom: 1px solid #e8ebf1;
+  background: #fff;
+  color: #111a40;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.site-navbar-brand {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-navbar-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.site-navbar-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.site-navbar-brand-copy strong {
+  color: #101b83;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.site-navbar-brand-copy span {
+  color: #63708a;
+  font-size: 11px;
+}
+
+.site-navbar-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(15px, 2vw, 30px);
+}
+
+.site-navbar-links a {
+  color: #26314d;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.site-navbar-links a:hover {
+  color: #111b94;
+}
+
+.site-navbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-navbar-icon {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #101b83;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.site-navbar-icon:hover {
+  background: #f0f2fb;
+}
+
+.site-navbar-shop {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0 16px;
+  border-radius: 7px;
+  background: #10138f;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.site-navbar-shop:hover {
+  background: #080b70;
+}
+
+@media (max-width: 980px) {
+  .site-navbar {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 12px 22px;
+  }
+
+  .site-navbar-links {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 6px 0 2px;
+  }
+
+  .site-navbar-links a {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-navbar {
+    padding-inline: 16px;
+  }
+
+  .site-navbar-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .site-navbar-brand-copy strong {
+    font-size: 14px;
+  }
+
+  .site-navbar-actions {
+    gap: 2px;
+  }
+
+  .site-navbar-icon {
+    width: 29px;
+    height: 29px;
+    font-size: 15px;
+  }
+
+  .site-navbar-shop {
+    min-height: 32px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .site-navbar-links {
+    gap: 20px;
+  }
+}

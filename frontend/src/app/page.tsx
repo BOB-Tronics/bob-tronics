@@ -38,7 +38,7 @@ export default async function HomePage() {
   const averageRating = reviews.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null;
 
   return (
-    <div>
+    <div className="bg-surface">
       <Hero />
       <TrustBar />
 
