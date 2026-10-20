@@ -2,7 +2,7 @@
 // authenticated apiFetch that adds a Bearer token and retries once via refresh.
 // UNVERIFIED: login response is based on the supplied real response; confirm the browser session against the backend.
 
-import { apiFetch, ApiError, delay, useMock } from "@/lib/api";
+import { apiFetch, ApiError, delay, isMockMode } from "@/lib/api";
 import type {
   ActivationInput,
   BackendUserProfile,
@@ -124,7 +124,7 @@ export async function mockLogin(email: string, password: string) {
     throw new ApiError("Please enter both email and password.", 400);
   }
   setTokens(MOCK_TOKENS);
-  return { user: MOCK_USER, tokens: MOCK_TOKENS } as LoginResponse;
+  return { user: MOCK_USER, tokens: MOCK_TOKENS } ;
 }
 
 export async function mockRegister(data: RegisterInput) {
@@ -214,7 +214,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(data: RegisterInput) {
-  if (useMock()) {
+  if (isMockMode()) {
     return mockRegister(data);
   }
   return apiFetch<BackendUserProfile>("/accounts/register/", {

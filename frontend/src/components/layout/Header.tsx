@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "@/components/layout/Providers";
-import { categories } from "@/lib/mock-data";
 import { useCart } from "@/hooks/useCart";
+import { getCategories } from "@/services/products";
+import type { Category } from "@/types";
 import Button from "@/components/ui/Button";
 import {
   ArrowRightIcon,

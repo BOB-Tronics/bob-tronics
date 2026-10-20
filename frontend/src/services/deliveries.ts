@@ -101,7 +101,7 @@ export async function getDeliveryForOrder(orderId: string | number): Promise<Del
 
 // Available delivery methods and fees (login required).
 export async function getDeliveryMethods(): Promise<DeliveryMethod[]> {
-  if (useMock()) {
+  if (isMockMode()) {
     return [];
   }
   try {
