@@ -65,12 +65,10 @@ html {
 /* The Figma background (1280 x 3466) spans the full page width and scrolls with it,
    so every section sits on the diagonal bands rather than on the flat top strip. */
 body {
-  background-color: #e4e7f6;
   background-image: url("/images/background.png");
 }
 
 :root[data-theme="dark"] body {
-  background-color: #080d22;
   background-image: linear-gradient(rgba(8, 13, 34, 0.9), rgba(8, 13, 34, 0.9)), url("/images/background.png");
   background-position: center top;
   background-repeat: no-repeat, repeat-y;
