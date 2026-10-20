@@ -1,7 +1,7 @@
-﻿import SignInForm from "@/components/auth/SignInForm";
+import AuthExperience from "@/components/auth/AuthExperience";
 
 export const metadata = { title: "Sign In · BOB TRONICS" };
 
 export default function SignInPage() {
-  return <SignInForm />;
+  return <AuthExperience initialMode="sign-in" />;
 }
