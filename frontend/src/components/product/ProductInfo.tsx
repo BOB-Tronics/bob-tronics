@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Product } from "@/types";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import Badge from "@/components/ui/Badge";
@@ -21,12 +21,16 @@ const promises = [
 
 export default function ProductInfo({ product }: { product: Product }) {
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, cartError, cartErrorProductId } = useCart();
   const wishlist = useWishlist();
-  const [finish, setFinish] = useState(product.finishes[0]);
+  // Backend products have no finishes/configurations yet, so both may be empty.
+  const [finish, setFinish] = useState<string | undefined>(product.finishes[0]);
   const [config, setConfig] = useState(product.configurations[0]);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+
+  const unitPrice = config?.price ?? product.price;
+  const discount = product.discount;
 
   const stockLabel =
     product.stock === "in-stock"
@@ -35,19 +39,19 @@ export default function ProductInfo({ product }: { product: Product }) {
         ? `Low stock · only ${product.stockCount} left`
         : "Pre-order";
 
-  function addToCart() {
-    addItem({ productId: product.id, quantity, finish, configuration: config.label });
+  async function addToCart() {
+    return addItem({ productId: product.id, quantity, finish, configuration: config?.label });
   }
 
-  function handleAdd() {
-    addToCart();
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+  async function handleAdd() {
+    if (await addToCart()) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
   }
 
-  function handleBuyNow() {
-    addToCart();
-    router.push("/checkout");
+  async function handleBuyNow() {
+    if (await addToCart()) router.push("/checkout");
   }
 
   return (
@@ -63,41 +67,59 @@ export default function ProductInfo({ product }: { product: Product }) {
           {product.rating.toFixed(1)} · {product.reviewCount} reviews
         </span>
       </div>
-      <p className="text-4xl font-bold text-ink">{formatPrice(config.price)}</p>
+      {discount && !config ? (
+        <div>
+          <p className="text-4xl font-bold text-ink">
+            {formatPrice(discount.discountedPrice)}{" "}
+            <span className="text-xl font-medium text-muted line-through">{formatPrice(product.price)}</span>
+          </p>
+          <p className="mt-2 text-sm font-semibold text-success">
+            You save {formatPrice(discount.savings)}
+            {discount.endDate ? ` · Offer ends ${formatDate(discount.endDate)}` : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="text-4xl font-bold text-ink">{formatPrice(unitPrice)}</p>
+      )}
       <Badge tone={product.stock === "low-stock" ? "warning" : "success"}>{stockLabel}</Badge>
       <p className="text-sm text-muted">
-        SKU: {product.sku} · {product.warranty}
+        SKU: {product.sku}
+        {product.warranty ? ` · ${product.warranty}` : ""}
       </p>
 
-      <fieldset>
-        <legend className="mb-2 font-semibold text-ink">Finish: {finish}</legend>
-        <div className="flex flex-wrap gap-2">
-          {product.finishes.map((option) => (
-            <OptionButton key={option} selected={option === finish} onClick={() => setFinish(option)}>
-              <span
-                aria-hidden="true"
-                className={`h-2.5 w-2.5 rounded-full border ${option === finish ? "bg-primary border-primary" : "border-muted"}`}
-              />
-              {option}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
+      {product.finishes.length > 0 && (
+        <fieldset>
+          <legend className="mb-2 font-semibold text-ink">Finish: {finish}</legend>
+          <div className="flex flex-wrap gap-2">
+            {product.finishes.map((option) => (
+              <OptionButton key={option} selected={option === finish} onClick={() => setFinish(option)}>
+                <span
+                  aria-hidden="true"
+                  className={`h-2.5 w-2.5 rounded-full border ${option === finish ? "bg-primary border-primary" : "border-muted"}`}
+                />
+                {option}
+              </OptionButton>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
-      <fieldset>
-        <legend className="mb-2 font-semibold text-ink">Configuration</legend>
-        <div className="flex flex-wrap gap-2">
-          {product.configurations.map((option) => (
-            <OptionButton
-              key={option.label}
-              selected={option.label === config.label}
-              onClick={() => setConfig(option)}
-            >
-              {option.label}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
+      {product.configurations.length > 0 && (
+        <fieldset>
+          <legend className="mb-2 font-semibold text-ink">Configuration</legend>
+          <div className="flex flex-wrap gap-2">
+            {product.configurations.map((option) => (
+              <OptionButton
+                key={option.label}
+                selected={option.label === config?.label}
+                onClick={() => setConfig(option)}
+              >
+                {option.label}
+              </OptionButton>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <p className="text-muted">{product.description}</p>
 
@@ -116,6 +138,7 @@ export default function ProductInfo({ product }: { product: Product }) {
           Buy Now
         </Button>
       </div>
+      {cartErrorProductId === product.id && cartError && <p role="alert" className="text-sm text-red-600">{cartError}</p>}
 
       <ul className="space-y-2 rounded-xl border border-line bg-white p-4 text-sm text-ink">
         {promises.map((text) => (

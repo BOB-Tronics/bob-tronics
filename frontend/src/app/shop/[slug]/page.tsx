@@ -2,13 +2,12 @@ import { notFound } from "next/navigation";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductInfo from "@/components/product/ProductInfo";
+import ProductReviews from "@/components/product/ProductReviews";
 import Breadcrumb from "@/components/ui/Breadcrumb";
-import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Rating from "@/components/ui/Rating";
 import SectionHeading from "@/components/ui/SectionHeading";
-import { formatDate } from "@/lib/format";
 import { getCategories, getProduct, getRelatedProducts } from "@/services/products";
+import { applyPromotions, discountFromDetail, getActivePromotions, getProductDiscount } from "@/services/promotions";
 
 const sections = [
   { id: "overview", label: "Overview" },
@@ -20,10 +19,18 @@ const sections = [
 
 export default async function ProductPage({ params }: PageProps<"/shop/[slug]">) {
   const { slug } = await params;
-  const product = await getProduct(slug);
-  if (!product) notFound();
+  const loaded = await getProduct(slug);
+  if (!loaded) notFound();
 
-  const [categories, related] = await Promise.all([getCategories(), getRelatedProducts(product)]);
+  const [categories, relatedList, discountDetail, promotions] = await Promise.all([
+    getCategories(),
+    getRelatedProducts(loaded),
+    getProductDiscount(loaded.id),
+    getActivePromotions(),
+  ]);
+  // Current discount for this product (GET /promotions/products/{id}/) and for related products.
+  const product = { ...loaded, discount: discountFromDetail(discountDetail) };
+  const related = applyPromotions(relatedList, promotions);
   const category = categories.find((c) => c.slug === product.category);
 
   return (
@@ -63,14 +70,16 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
         <Card id="overview" className="scroll-mt-28">
           <h2 className="text-xl font-bold text-ink">Designed for wherever you’re going.</h2>
           <p className="mt-3 text-lg text-ink/80">{product.description}</p>
-          <dl className="mt-8 grid gap-6 sm:grid-cols-3">
-            {product.highlights.map((item) => (
-              <div key={item.value}>
-                <dt className="text-4xl font-extrabold text-primary">{item.value}</dt>
-                <dd className="mt-2 text-muted">{item.label}</dd>
-              </div>
-            ))}
-          </dl>
+          {product.highlights.length > 0 && (
+            <dl className="mt-8 grid gap-6 sm:grid-cols-3">
+              {product.highlights.map((item) => (
+                <div key={item.value}>
+                  <dt className="text-4xl font-extrabold text-primary">{item.value}</dt>
+                  <dd className="mt-2 text-muted">{item.label}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </Card>
 
         <Card id="specifications" className="scroll-mt-28">
@@ -84,7 +93,13 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {product.specs.map((spec) => (
+                {[
+                  { label: "Brand", value: product.brand },
+                  { label: "Category", value: category?.name ?? product.tagline },
+                  { label: "Warranty", value: product.warranty || "—" },
+                  { label: "SKU", value: product.sku },
+                  ...product.specs,
+                ].map((spec) => (
                   <tr key={spec.label}>
                     <th scope="row" className="w-1/3 px-4 py-4 text-left font-semibold text-ink">
                       {spec.label}
@@ -99,44 +114,27 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
 
         <Card id="included" className="scroll-mt-28">
           <h2 className="text-xl font-bold text-ink">What’s Included</h2>
-          <p className="mt-3 text-lg text-ink/80">{product.included.join(" · ")}</p>
+          <p className="mt-3 text-lg text-ink/80">
+            {product.included.length > 0 ? product.included.join(" · ") : "Contents are listed on the product packaging."}
+          </p>
         </Card>
 
-        <Card id="reviews" className="scroll-mt-28">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h2 className="text-xl font-bold text-ink">Customer Reviews</h2>
-            <Button variant="secondary">Write a review</Button>
-          </div>
-          <div className="mt-5 flex items-center gap-4">
-            <p className="text-5xl font-extrabold text-ink">{product.rating.toFixed(1)}</p>
-            <div>
-              <Rating value={product.rating} variant="stars" />
-              <p className="mt-1 text-muted">{product.reviewCount} verified reviews · 96% recommend</p>
-            </div>
-          </div>
-          <ul className="mt-6 divide-y divide-line">
-            {product.reviews.map((review) => (
-              <li key={review.id} className="py-4">
-                <p className="font-semibold text-ink">{review.author} · Verified purchase</p>
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted">
-                  <Rating value={review.rating} variant="stars" /> · {formatDate(review.date)}
-                </div>
-                <p className="mt-2 text-ink/80">{review.text}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <ProductReviews productId={product.id} />
 
         <Card id="faq" className="scroll-mt-28">
           <h2 className="text-xl font-bold text-ink">Frequently Asked Questions</h2>
-          <dl className="mt-5 space-y-5">
-            {product.faqs.map((faq) => (
-              <div key={faq.question}>
-                <dt className="font-semibold text-ink">{faq.question}</dt>
-                <dd className="mt-1 text-muted">{faq.answer}</dd>
-              </div>
-            ))}
-          </dl>
+          {product.faqs.length === 0 ? (
+            <p className="mt-3 text-muted">Have a question about this product? Our team is happy to help on the Contact page.</p>
+          ) : (
+            <dl className="mt-5 space-y-5">
+              {product.faqs.map((faq) => (
+                <div key={faq.question}>
+                  <dt className="font-semibold text-ink">{faq.question}</dt>
+                  <dd className="mt-1 text-muted">{faq.answer}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </Card>
       </div>
 

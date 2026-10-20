@@ -4,6 +4,7 @@ export type StockStatus = "in-stock" | "low-stock" | "pre-order";
 
 export interface Category {
   slug: CategorySlug;
+  backendId?: number;
   name: string;
   tagline: string;
   image: string;
@@ -29,6 +30,15 @@ export interface Faq {
   answer: string;
 }
 
+// Active promotion applied to a product (from /promotions/active/ or /promotions/products/{id}/).
+export interface ProductDiscount {
+  discountedPrice: number;
+  savings: number;
+  discountType: string;
+  discountValue: number;
+  endDate: string | null;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -36,6 +46,7 @@ export interface Product {
   brand: string;
   category: CategorySlug;
   price: number;
+  discount?: ProductDiscount;
   summary: string;
   tagline: string;
   description: string;
@@ -89,7 +100,7 @@ export interface Order {
   placedAt: string;
   estimatedDelivery: string;
   status: OrderStatus;
-  paymentStatus: "Paid" | "Pending";
+  paymentStatus: string;
   items: OrderItem[];
   subtotal: number;
   delivery: number;
@@ -100,6 +111,11 @@ export interface Order {
   paymentMethod: string;
   paymentReference: string;
   timeline: TimelineStep[];
+  // Raw backend values shown on the order detail page.
+  shippingAddress?: string;
+  phone?: string;
+  rawStatus?: string;
+  deliveryStatus?: string;
 }
 
 export interface Address {
@@ -124,9 +140,13 @@ export interface User {
 export interface ServiceRequest {
   id: string;
   service: string;
-  status: "Scheduled" | "Completed" | "Pending";
+  status: string;
   date: string;
   location: string;
+  description?: string;
+  serviceType?: string;
+  estimatedCost?: string | null;
+  finalCost?: string | null;
 }
 
 export interface ItService {
@@ -143,30 +163,24 @@ export interface Testimonial {
   rating: number;
 }
 
-// ---- Backend auth types (UNVERIFIED: built from OpenAPI schema) ----
+// The account UI uses a separate camel-case User view model above.
+// UNVERIFIED: confirm login and /accounts/me/ against the real backend in-browser.
+export type UserRole = "customer" | "admin" | "super_admin";
 
 export interface BackendUser {
   user_id: number;
+  email: string;
   first_name: string;
   last_name: string;
-  email: string;
+  role: UserRole;
   phone: string;
   residence: string;
-  role: "customer" | "admin" | "super_admin";
   created_at: string;
-  updated_at: string;
+  is_active?: boolean;
+  last_login?: string | null;
 }
 
-export interface BackendUserProfile {
-  user_id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: "customer" | "admin" | "super_admin";
-  phone: string;
-  residence: string;
-  created_at: string;
-}
+export type BackendUserProfile = BackendUser;
 
 export interface TokenResponse {
   access: string;
@@ -174,10 +188,10 @@ export interface TokenResponse {
 }
 
 export interface LoginResponse {
-  user: BackendUserProfile;
+  message: string;
+  user: BackendUser;
   tokens: TokenResponse;
 }
-
 export interface RegisterInput {
   first_name: string;
   last_name: string;
@@ -257,7 +271,7 @@ export interface WishlistItemAddInput {
   product_id: number;
 }
 
-// ---- Backend order types (UNVERIFIED) ----
+// ---- Backend order types (verified live for list, detail, checkout, delivery, and status fields) ----
 
 export interface BackendOrderItem {
   order_item_id: number;
@@ -276,6 +290,7 @@ export interface BackendOrderItem {
 export interface BackendOrderList {
   order_id: number;
   customer_email: string;
+  customer_name?: string;
   order_date: string;
   status: string;
   status_display: string;
@@ -283,10 +298,12 @@ export interface BackendOrderList {
   total_items: number;
   shipping_address: string;
   phone: string;
-  payment_status: string;
-  payment_method: string;
-  payment_reference: string;
-  estimated_delivery: string;
+  payment_status?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  delivery_status?: string;
+  delivery?: BackendOrderDelivery | string | null;
+  estimated_delivery?: string | null;
   created_at: string;
 }
 
@@ -300,14 +317,25 @@ export interface BackendOrder {
   total_amount: string;
   shipping_address: string;
   phone: string;
+  payment_status?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  delivery_status?: string;
+  estimated_delivery?: string | null;
   items: BackendOrderItem[];
-  delivery: string;
-  payment_status: string;
-  payment_method: string;
-  payment_reference: string;
-  estimated_delivery: string;
+  delivery: BackendOrderDelivery | string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface BackendOrderDelivery {
+  delivery_id?: number;
+  delivery_method?: string;
+  delivery_method_display?: string;
+  status?: string;
+  status_display?: string;
+  estimated_delivery?: string | null;
+  tracking_number?: string | null;
 }
 
 export interface OrderCheckoutInput {
@@ -440,7 +468,7 @@ export interface BackendCategory {
   category_id: number;
   name: string;
   description: string;
-  image: string;
+  image: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -450,18 +478,19 @@ export interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
-  slug: string;
-  description: string;
+  // UNVERIFIED: description/warranty/images are admin detail fields beyond the known public list contract.
+  description?: string;
   brand: string;
   price: string;
   stock_quantity: number;
-  warranty: string;
+  warranty?: string;
   is_available: boolean;
-  average_rating: number;
-  review_count: number;
-  images: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
-  created_at: string;
-  updated_at: string;
+  average_rating?: number | string;
+  review_count?: number;
+  primary_image?: string | null;
+  images?: Array<{ image_id: number; image_url: string; is_primary: boolean }>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BackendProductImage {
@@ -484,6 +513,17 @@ export interface BackendDiscount {
   updated_at: string;
 }
 
+// Body for creating/updating a discount via /promotions/admin/discounts/.
+// VERIFIED live: "percentage" is accepted; other discount_type values remain unverified.
+export interface DiscountInput {
+  product: number;
+  discount_type: string;
+  discount_value: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
 export interface StockAdjustmentInput {
   delta: number;
   reason?: string;
@@ -500,6 +540,7 @@ export interface BackendAdminCustomerList {
   residence: string;
   role: string;
   is_active: boolean;
+  last_login: string | null;
   total_orders: number;
   created_at: string;
 }
@@ -513,9 +554,10 @@ export interface BackendAdminCustomerDetail {
   residence: string;
   role: string;
   is_active: boolean;
+  last_login: string | null;
   total_orders: number;
   total_spent: string;
-  recent_orders: string;
+  recent_orders: BackendOrderList[];
   created_at: string;
   updated_at: string;
 }

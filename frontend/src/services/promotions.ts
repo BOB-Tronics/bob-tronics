@@ -1,11 +1,14 @@
 // Public promotion endpoints.
-// UNVERIFIED: built from OpenAPI schema; confirm /promotions/active/ vs
-// /catalog/active/ returns active discounts.
-import { apiFetch, useMock } from "@/lib/api";
+// VERIFIED: /promotions/active/ returns paginated {count,results}; /promotions/products/{id}/
+// returns the has_discount shape (tested with has_discount=false). Populated promotion
+// fields remain UNVERIFIED until a discount exists.
+import { apiFetch, isMockMode } from "@/lib/api";
 import { promotions } from "@/lib/mock-data";
 import type {
   BackendActivePromotion,
   BackendProductDiscountDetail,
+  Product,
+  ProductDiscount,
 } from "@/types";
 
 function mapBackendPromotion(item: BackendActivePromotion): Promotion {
@@ -42,34 +45,81 @@ export interface Promotion {
   isActive: boolean;
 }
 
-export async function getActivePromotions(pageSize?: number): Promise<Promotion[]> {
-  // UNVERIFIED: check which of /promotions/active/ or /catalog/active/ returns deals.
-  if (useMock()) {
+type PromotionList = BackendActivePromotion[] | { count?: number; results?: BackendActivePromotion[]; data?: BackendActivePromotion[] | { results?: BackendActivePromotion[] } };
+
+function listResults(response: PromotionList | null): BackendActivePromotion[] {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.results)) return response.results;
+  if (Array.isArray(response.data)) return response.data;
+  return response.data?.results ?? [];
+}
+
+export async function getActivePromotions(): Promise<Promotion[]> {
+  if (isMockMode()) {
     return promotions;
   }
   try {
-    const query = pageSize ? `?page_size=${pageSize}` : "";
-    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(`/promotions/active/${query}`);
-    if (!response || !response.results) return [];
-    return response.results.map(mapBackendPromotion);
+    const response = await apiFetch<PromotionList>("/promotions/active/");
+    return listResults(response).map(mapBackendPromotion);
   } catch {
     // Fall back to catalog/active/ if promotions/active/ fails.
-    const query = pageSize ? `?page_size=${pageSize}` : "";
-    const response = await apiFetch<{ count: number; results: BackendActivePromotion[] }>(`/catalog/active/${query}`);
-    if (!response || !response.results) return [];
-    return response.results.map(mapBackendPromotion);
+    try {
+      const response = await apiFetch<PromotionList>("/catalog/active/");
+      return listResults(response).map(mapBackendPromotion);
+    } catch {
+      // Promotions are optional on every page; never block rendering because of them.
+      return [];
+    }
   }
 }
 
 export async function getProductDiscount(productId: string | number): Promise<BackendProductDiscountDetail | null> {
-  if (useMock()) {
+  if (isMockMode()) {
     return null;
   }
   try {
-    return await apiFetch<BackendProductDiscountDetail>(
+    const response = await apiFetch<BackendProductDiscountDetail | { data?: BackendProductDiscountDetail }>(
       `/promotions/products/${productId}/`
     );
+    if (!response) return null;
+    if (Object.prototype.hasOwnProperty.call(response, "data")) {
+      return (response as { data?: BackendProductDiscountDetail }).data ?? null;
+    }
+    return response as BackendProductDiscountDetail;
   } catch {
     return null;
   }
+}
+
+// Turns the /promotions/products/{id}/ response into the small shape shown on product pages.
+export function discountFromDetail(detail: BackendProductDiscountDetail | null): ProductDiscount | undefined {
+  if (!detail || !detail.has_discount) return undefined;
+  return {
+    discountedPrice: Number(detail.discounted_price) || 0,
+    savings: Number(detail.savings_amount) || 0,
+    discountType: detail.discount_type ?? "",
+    discountValue: Number(detail.discount_value) || 0,
+    endDate: detail.end_date,
+  };
+}
+
+// Attaches active promotions to a product list so cards can show the discounted price.
+export function applyPromotions(products: Product[], activePromotions: Promotion[]): Product[] {
+  if (activePromotions.length === 0) return products;
+  const byProduct = new Map(activePromotions.filter((p) => p.isActive).map((p) => [p.productId, p]));
+  return products.map((product) => {
+    const promo = byProduct.get(product.id);
+    if (!promo) return product;
+    return {
+      ...product,
+      discount: {
+        discountedPrice: promo.discountedPrice,
+        savings: promo.savings,
+        discountType: promo.discountType,
+        discountValue: promo.discountValue,
+        endDate: promo.endDate,
+      },
+    };
+  });
 }

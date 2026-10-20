@@ -1,54 +1,8 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
-
-import { useMemo, useState } from "react";
+import { useCallback,useEffect,useMemo,useState } from "react";
 import OperationsShell from "@/components/operations/OperationsShell";
-
-const tabs = ["All requests (18)", "Pending (4)", "Scheduled (8)", "In progress (3)", "Completed (3)"];
-const requests = [
-  { id: "BT-SR-2041", customer: "David Shema", service: "Network & Setup", appointment: "06 Oct · 10:00", status: "Scheduled" },
-  { id: "BT-SR-2040", customer: "Kofi Asante", service: "Technical Support", appointment: "03 Oct · 14:00", status: "Pending" },
-  { id: "BT-SR-2039", customer: "Esi Boateng", service: "IT Consulting", appointment: "04 Oct · 11:00", status: "Assigned" },
-  { id: "BT-SR-2038", customer: "Nana Adjei", service: "Device Setup", appointment: "02 Oct · 09:00", status: "In progress" },
-  { id: "BT-SR-2037", customer: "Akua Osei", service: "Security & Backup", appointment: "30 Sep · 10:00", status: "Completed" },
-];
-
-export default function ItRequestsPage() {
-  const [search, setSearch] = useState("");
-  const [tab, setTab] = useState(tabs[0]);
-  const visible = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const status = tab.split(" (")[0];
-    return requests.filter((request) => (status === "All requests" || request.status === status) &&
-      (!query || [request.id, request.customer, request.service].some((value) => value.toLowerCase().includes(query))));
-  }, [search, tab]);
-
-  return <OperationsShell active="IT Requests">
-    <p className="text-[10px] font-bold uppercase text-indigo-800">Operations / IT Requests</p>
-    <h1 className="mt-2 text-3xl font-extrabold">IT Requests</h1>
-    <p className="mt-2 text-sm text-slate-500">Manage appointments, specialists and service progress.</p>
-    <div className="mt-6 flex flex-wrap items-end gap-3">
-      <label className="min-w-[240px] flex-1 text-xs font-semibold">Search IT requests<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Enter keyword" className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal" /></label>
-      <select aria-label="Filter service" className="h-11 rounded-lg bg-white px-4 text-xs font-semibold text-indigo-900"><option>Filters · All services</option><option>Network &amp; Setup</option><option>Technical Support</option></select>
-      <button className="h-11 rounded-lg bg-white px-4 text-xs font-semibold text-indigo-900">Export</button>
-    </div>
-    <div role="tablist" aria-label="Request status" className="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-1">{tabs.map((item) => <button key={item} role="tab" aria-selected={tab === item} onClick={() => setTab(item)} className={`shrink-0 rounded-lg border px-3.5 py-2.5 text-xs font-semibold ${tab === item ? "border-[#10139a] bg-[#efefff] text-indigo-900" : "border-transparent bg-white text-slate-500"}`}>{item}</button>)}</div>
-    <section className="mt-5 rounded-2xl bg-white p-5 shadow-card sm:p-6">
-      <h2 className="mb-5 text-lg font-bold">Service requests</h2>
-      <div className="overflow-x-auto rounded-lg border border-slate-200"><table className="w-full min-w-[760px] text-left text-xs">
-        <thead className="bg-slate-50 text-[10px] text-slate-500"><tr>{["Request", "Customer", "Service", "Appointment", "Status", "Actions"].map((label) => <th key={label} className="px-3 py-3.5 font-semibold">{label}</th>)}</tr></thead>
-        <tbody>{visible.map((request) => <tr key={request.id} className="border-t border-slate-200"><th className="px-3 py-4 font-semibold">{request.id}</th><td className="px-3 py-4">{request.customer}</td><td className="px-3 py-4">{request.service}</td><td className="px-3 py-4">{request.appointment}</td><td className="px-3 py-4">{request.status}</td><td className="px-3 py-4"><Link href={`/operations/it-requests/${request.id}`} className="whitespace-nowrap font-semibold text-indigo-800">{request.status === "Pending" ? "Assign specialist" : request.status === "Completed" ? "View report →" : "View request →"}</Link></td></tr>)}</tbody>
-      </table></div>
-      {visible.length === 0 && <p className="p-6 text-sm text-slate-500">No requests match your search and status.</p>}
-    </section>
-    <section className="mt-5 rounded-2xl bg-white p-5 shadow-card sm:p-6">
-      <h2 className="text-lg font-bold">Upcoming appointment</h2><span className="mt-4 inline-flex rounded-full bg-[#efefff] px-3 py-1.5 text-[11px] font-semibold text-indigo-900">06 Oct 2026 · 10:00 AM</span>
-      <h3 className="mt-5 text-xl font-bold">Network &amp; Setup · Ama Mensah</h3><p className="mt-4 text-sm text-slate-500">Nyarugenge · On-site</p>
-      <p className="mt-4 text-sm">Secure Wi-Fi for an 8-person office, guest access and coverage across two rooms.</p>
-      <Link href="/operations/it-requests/BT-SR-2041" className="mt-5 inline-flex rounded-lg bg-[#10139a] px-4 py-3 text-xs font-semibold text-white">Open BT-SR-2041 →</Link>
-    </section>
-  </OperationsShell>;
+import { adminErrorMessage,adminListServices,type AdminServiceRow } from "@/services/admin";
+export default function ItRequestsPage(){const [requests,setRequests]=useState<AdminServiceRow[]>([]),[count,setCount]=useState<number|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(""),[search,setSearch]=useState(""),[statusFilter,setStatusFilter]=useState("All requests"),[serviceFilter,setServiceFilter]=useState("all");const load=useCallback(async()=>{setLoading(true);setError("");try{const response=await adminListServices();setRequests(response.results);setCount(response.count)}catch(e){setError(adminErrorMessage(e))}finally{setLoading(false)}},[]);useEffect(()=>{void load()},[load]);const statuses=useMemo(()=>Array.from(new Set(requests.map(r=>r.status).filter(s=>s!=="—"))),[requests]);const services=useMemo(()=>Array.from(new Set(requests.map(r=>r.service).filter(s=>s!=="—"))),[requests]);const tabs=["All requests",...statuses];const visible=useMemo(()=>{const q=search.trim().toLowerCase();return requests.filter(r=>(statusFilter==="All requests"||r.status===statusFilter)&&(serviceFilter==="all"||r.service===serviceFilter)&&(!q||`${r.id??""} ${r.customerName} ${r.customerEmail} ${r.service}`.toLowerCase().includes(q)))},[requests,search,statusFilter,serviceFilter]);const upcoming=requests.find(r=>r.appointment!=="—");
+ return <OperationsShell active="IT Requests"><p className="text-[10px] font-bold uppercase text-indigo-800">Operations / IT Requests</p><h1 className="mt-2 text-3xl font-extrabold">IT Requests</h1><p className="mt-2 text-sm text-slate-500">Manage appointments, specialists and service progress.</p><div className="mt-6 flex flex-wrap items-end gap-3"><label className="min-w-[240px] flex-1 text-xs font-semibold">Search IT requests<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Enter keyword" className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal"/></label><select aria-label="Filter service" value={serviceFilter} onChange={e=>setServiceFilter(e.target.value)} className="h-11 rounded-lg bg-white px-4 text-xs font-semibold text-indigo-900"><option value="all">Filters · All services</option>{services.map(s=><option key={s} value={s}>{s}</option>)}</select><button onClick={()=>void load()} className="h-11 rounded-lg bg-white px-4 text-xs font-semibold text-indigo-900">Refresh</button></div><div role="tablist" aria-label="Request status" className="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-1">{tabs.map(item=><button key={item} role="tab" aria-selected={statusFilter===item} onClick={()=>setStatusFilter(item)} className={`shrink-0 rounded-lg border px-3.5 py-2.5 text-xs font-semibold ${statusFilter===item?"border-[#10139a] bg-[#efefff] text-indigo-900":"border-transparent bg-white text-slate-500"}`}>{item}{item==="All requests"&&count!==null?` (${count})`:""}</button>)}</div><section className="mt-5 rounded-2xl bg-white p-5 shadow-card sm:p-6"><h2 className="mb-5 text-lg font-bold">Service requests</h2>{error&&<p role="alert" className="mb-4 text-sm text-rose-700">{error}<button onClick={()=>void load()} className="ml-3 underline">Retry</button></p>}<div className="overflow-x-auto rounded-lg border border-slate-200"><table className="w-full min-w-[760px] text-left text-xs"><thead className="bg-slate-50 text-[10px] text-slate-500"><tr>{["Request","Customer","Service","Appointment","Status","Actions"].map(label=><th key={label} className="px-3 py-3.5 font-semibold">{label}</th>)}</tr></thead><tbody>{loading?<tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Loading service requests…</td></tr>:visible.length===0?<tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">{error?"Requests could not be loaded.":"No requests match your search and status."}</td></tr>:visible.map((r,index)=><tr key={r.id??`${r.service}-${index}`} className="border-t border-slate-200"><th className="px-3 py-4 font-semibold">{r.id===null?"—":`#${r.id}`}</th><td className="px-3 py-4">{r.customerName}</td><td className="px-3 py-4">{r.service}</td><td className="px-3 py-4">{r.appointment}</td><td className="px-3 py-4">{r.status}</td><td className="px-3 py-4">{r.id===null?"—":<Link href={`/operations/it-requests/${r.id}`} className="whitespace-nowrap font-semibold text-indigo-800">View request →</Link>}</td></tr>)}</tbody></table></div></section><section className="mt-5 rounded-2xl bg-white p-5 shadow-card sm:p-6"><h2 className="text-lg font-bold">Upcoming appointment</h2><span className="mt-4 inline-flex rounded-full bg-[#efefff] px-3 py-1.5 text-[11px] font-semibold text-indigo-900">{upcoming?.appointment??"—"}</span><h3 className="mt-5 text-xl font-bold">{upcoming?.service??"—"} · {upcoming?.customerName??"—"}</h3><p className="mt-4 text-sm text-slate-500">—</p><p className="mt-4 text-sm">{upcoming?.description??"—"}</p>{upcoming?.id!==null&&upcoming?.id!==undefined&&<Link href={`/operations/it-requests/${upcoming.id}`} className="mt-5 inline-flex rounded-lg bg-[#10139a] px-4 py-3 text-xs font-semibold text-white">Open request →</Link>}</section></OperationsShell>
 }
-
-
-

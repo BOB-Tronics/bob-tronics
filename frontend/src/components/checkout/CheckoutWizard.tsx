@@ -28,6 +28,7 @@ export default function CheckoutWizard({
   const [step, setStep] = useState(0);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [placedLines, setPlacedLines] = useState<ReturnType<typeof buildCartLines>>([]);
+  const [orderError, setOrderError] = useState("");
 
   const [customer, setCustomer] = useState<CustomerDetails>({
     fullName: `${user.firstName} ${user.lastName}`,
@@ -64,13 +65,20 @@ export default function CheckoutWizard({
     );
   }
 
+  // POST /orders/checkout/ creates the order from the backend cart. Errors (for example
+  // an empty backend cart or an expired session) are shown instead of crashing the page.
   async function handlePay(details: PaymentDetails) {
     setPayment(details);
-    const result = await placeOrder({ customer, delivery, payment: details, lines, totals });
-    setPlacedLines(lines);
-    setOrderId(result.orderId);
-    cart.clearCart();
-    setStep(3);
+    setOrderError("");
+    try {
+      const result = await placeOrder({ customer, delivery, payment: details, lines, totals });
+      setPlacedLines(lines);
+      setOrderId(result.orderId);
+      cart.clearCart();
+      setStep(3);
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : "We could not place your order. Please try again.");
+    }
   }
 
   const methodLabel = deliveryMethods.find((m) => m.value === delivery.method)?.label;
@@ -103,7 +111,14 @@ export default function CheckoutWizard({
             />
           )}
           {step === 2 && (
-            <PaymentStep initial={payment} total={totals.total} onBack={() => setStep(1)} onPay={handlePay} />
+            <>
+              <PaymentStep initial={payment} total={totals.total} onBack={() => setStep(1)} onPay={handlePay} />
+              {orderError && (
+                <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {orderError}
+                </p>
+              )}
+            </>
           )}
           {step === 3 && orderId && (
             <Card>

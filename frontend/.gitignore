@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# AI throwaway test scripts (credentials via env only — never commit)
+/scripts/ai-test/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

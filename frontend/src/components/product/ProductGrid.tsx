@@ -6,9 +6,13 @@ import EmptyState from "@/components/ui/EmptyState";
 export default function ProductGrid({
   products,
   columns = 4,
+  onAddToCart,
+  addLabel,
 }: {
   products: Product[];
   columns?: 2 | 3 | 4;
+  onAddToCart?: (product: Product) => void | Promise<void>;
+  addLabel?: string;
 }) {
   if (products.length === 0) {
     return <EmptyState title="No products found" description="Try a different category or search." />;
@@ -23,7 +27,7 @@ export default function ProductGrid({
   return (
     <div className={`grid grid-cols-1 gap-5 ${columnClass}`}>
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+        <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} addLabel={addLabel} />
       ))}
     </div>
   );

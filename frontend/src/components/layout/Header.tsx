@@ -35,6 +35,22 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  // Categories come from GET /catalog/categories/ (empty until loaded or if the backend is down).
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((list) => {
+        if (!cancelled) setCategories(list);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (pathname === "/sign-in" || pathname === "/sign-up") return null;
 
@@ -57,7 +73,7 @@ export default function Header() {
 
       <div className="page-container flex h-16 items-center justify-between gap-4 lg:h-20">
         <Link href="/" className="flex items-center gap-2" aria-label="BOB TRONICS home">
-          <Image src="/images/logo.png" alt="" width={48} height={47} className="h-10 w-auto lg:h-12" priority />
+          <Image src="/images/logo.png" alt="" width={48} height={47} className="h-10 w-auto lg:h-12" style={{ width: "auto" }} priority />
           <span className="leading-tight">
             <span className="block whitespace-nowrap text-base font-extrabold tracking-tight text-primary sm:text-lg lg:text-2xl">
               BOB TRONICS
@@ -86,7 +102,7 @@ export default function Header() {
             >
               Categories <ChevronDownIcon size={16} />
             </button>
-            {categoriesOpen && <CategoriesMenu onNavigate={closeMenus} />}
+            {categoriesOpen && <CategoriesMenu categories={categories} onNavigate={closeMenus} />}
           </div>
           {navLinks.slice(2).map((link) => (
             <NavLink key={link.href} {...link} active={isActive(link.href)} />
@@ -135,7 +151,7 @@ export default function Header() {
         </div>
       </div>
 
-      {menuOpen && <MobileMenu isActive={isActive} onNavigate={closeMenus} />}
+      {menuOpen && <MobileMenu categories={categories} isActive={isActive} onNavigate={closeMenus} />}
     </header>
   );
 }
@@ -153,7 +169,7 @@ function NavLink({ label, href, active }: { label: string; href: string; active:
   );
 }
 
-function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
+function CategoriesMenu({ categories, onNavigate }: { categories: Category[]; onNavigate: () => void }) {
   return (
     <div className="absolute left-1/2 top-full w-[760px] -translate-x-1/2 pt-3" onClick={onNavigate}>
       <div className="rounded-2xl border border-line bg-white p-6 shadow-card">
@@ -185,14 +201,14 @@ function CategoriesMenu({ onNavigate }: { onNavigate: () => void }) {
           href="/shop/macbook-air-13-m3"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
         >
-          New: MacBook Air M3 Â· Explore now <ArrowRightIcon size={16} />
+          New: MacBook Air M3 · Explore now <ArrowRightIcon size={16} />
         </Link>
       </div>
     </div>
   );
 }
 
-function MobileMenu({ isActive, onNavigate }: { isActive: (href: string) => boolean; onNavigate: () => void }) {
+function MobileMenu({ categories, isActive, onNavigate }: { categories: Category[]; isActive: (href: string) => boolean; onNavigate: () => void }) {
   return (
     <div className="border-t border-line bg-white lg:hidden" onClick={onNavigate}>
       <nav className="page-container flex flex-col py-3" aria-label="Mobile">
