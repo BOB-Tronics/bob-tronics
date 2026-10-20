@@ -14,7 +14,7 @@ import {
 import type { BackendDiscount, BackendProduct, DiscountInput } from "@/types";
 
 const field = "mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-indigo-700 focus:ring-2 focus:ring-indigo-100";
-// UNVERIFIED: accepted discount_type values; "percentage" and "fixed" are assumed.
+// VERIFIED live: "percentage" is accepted; "fixed" has not been tested.
 const discountTypes = [
   { value: "percentage", label: "Percentage (%)" },
   { value: "fixed", label: "Fixed amount (RWF)" },
@@ -31,7 +31,7 @@ interface DiscountForm {
 
 const emptyForm: DiscountForm = { product: "", discount_type: "percentage", discount_value: "", start_date: "", end_date: "", is_active: true };
 
-// datetime-local inputs need "YYYY-MM-DDTHH:mm"; the backend sends/accepts ISO strings.
+// datetime-local inputs use "YYYY-MM-DDTHH:mm"; the backend accepts date-only strings.
 function toInputValue(iso: string): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -40,8 +40,8 @@ function toInputValue(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function toIso(value: string): string {
-  return value ? new Date(value).toISOString() : "";
+function toBackendDate(value: string): string {
+  return value ? value.slice(0, 10) : "";
 }
 
 function formatDateTime(iso: string): string {
@@ -116,8 +116,8 @@ export default function OperationsPromotionsPage() {
       product: Number(form.product),
       discount_type: form.discount_type,
       discount_value: form.discount_value,
-      start_date: toIso(form.start_date),
-      end_date: toIso(form.end_date),
+      start_date: toBackendDate(form.start_date),
+      end_date: toBackendDate(form.end_date),
       is_active: form.is_active,
     };
     try {

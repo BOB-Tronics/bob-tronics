@@ -1,5 +1,5 @@
 // Checkout service: replaces mock placeOrder with real POST /orders/checkout/.
-// UNVERIFIED: built from OpenAPI schema; confirm OrderCheckout input and Order response.
+// Verified live: checkout accepts shipping_address, phone, delivery_method and wraps the created order in data.
 import { authApiFetch } from "@/lib/auth";
 import { isMockMode } from "@/lib/api";
 import type { CartLine } from "@/lib/cart";
@@ -19,6 +19,8 @@ export interface PlaceOrderResult {
   orderId: string;
 }
 
+type CheckoutResponse = { order_id?: number; data?: { order_id?: number } };
+
 // Mock implementation kept for when NEXT_PUBLIC_USE_MOCK=true.
 export async function placeOrderMock(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   const orderId = `BT-${10000 + Math.floor(Math.random() * 90000)}`;
@@ -36,7 +38,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   const deliveryMethod = input.delivery.method === "pickup" ? "store_pickup" : "standard";
 
-  const response = await authApiFetch<{ order_id: number }>("/orders/checkout/", {
+  const response = await authApiFetch<CheckoutResponse>("/orders/checkout/", {
     method: "POST",
     body: JSON.stringify({
       shipping_address: [
@@ -50,9 +52,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     }),
   });
 
-  if (!response) {
+  const orderId = response?.data?.order_id ?? response?.order_id;
+  if (!orderId) {
     throw new Error("Checkout failed: no order returned");
   }
 
-  return { orderId: String(response.order_id) };
+  return { orderId: String(orderId) };
 }

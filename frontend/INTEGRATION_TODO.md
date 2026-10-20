@@ -135,10 +135,10 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 
 ### FIELDS WITH NO BACKEND SOURCE
 - Dashboard revenue, sales, previous-period comparisons, revenue time series, category sales, report export data, all-products total, delivery totals/readiness, and recent activity feed: no corresponding endpoint was supplied.
-- Orders: product/SKU line details and timeline/events have no supplied source; confirmed order fields (including customer name, payment status/method/reference, delivery status, and estimated delivery) are shown and missing values render as `—`.
+- Orders: product/SKU line details and timeline/events have no supplied source; confirmed order fields (including customer name, payment status/method/reference, delivery status, and estimated delivery) are shown and missing values render as `â€”`.
 - Customers: communication preferences, account activity, support conversation, and customer-specific order line details have no supplied source. `last_login`, `total_orders`, and `total_spent` are mapped from the supplied customer fields.
 - Service requests: appointment date, customer display name, location, assigned specialist, priority, attachment, and activity history have no supplied source.
-- These fields are rendered as `—` or an unavailable-state message unless the actual response includes a verified field. Remaining response aliases/status enumerations are UNVERIFIED until checked against the live backend.
+- These fields are rendered as `â€”` or an unavailable-state message unless the actual response includes a verified field. Remaining response aliases/status enumerations are UNVERIFIED until checked against the live backend.
 
 ### Other operations pages still using demo interactions/data
 - `src/app/operations/deliveries/page.tsx` -> GET /deliveries/admin/, GET /deliveries/admin/couriers/, GET /deliveries/fees/ and PATCH /deliveries/admin/{id}/. List and fee shapes are supplied as verified; courier GET and status PATCH are UNVERIFIED because test credentials were unavailable. Status updates require confirmation and show field errors.
@@ -153,7 +153,7 @@ Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs
 
 ### Reviews list assumptions
 - `src/services/reviews.ts` `getReviews` accepts either a plain array or a paginated object with `results`.
-- `// UNVERIFIED: confirm populated review field aliases against the live backend.` The mapper checks `feedback_id`/`review_id`/`id`, author aliases `user_name`/`author`/`user`/`customer_name`, product aliases `product_name`/`product`, rating/score, `created_at`/date/created, comment/text/review, and status/status_display. Missing display values render as `—`; a numeric user id is displayed as `user-<id>` and numeric product id as `#<id>`.
+- `// UNVERIFIED: confirm populated review field aliases against the live backend.` The mapper checks `feedback_id`/`review_id`/`id`, author aliases `user_name`/`author`/`user`/`customer_name`, product aliases `product_name`/`product`, rating/score, `created_at`/date/created, comment/text/review, and status/status_display. Missing display values render as `â€”`; a numeric user id is displayed as `user-<id>` and numeric product id as `#<id>`.
 - Publish/hide/reply actions and review status filtering have no supplied backend endpoint or verified status field; buttons and status tabs are disabled and labeled unavailable.
 
 ## NO BACKEND ENDPOINT items
@@ -174,7 +174,7 @@ Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{i
 
 ### Fixed: account pages now really call the backend
 - src/app/account/page.tsx, account/orders/page.tsx, account/orders/[id]/page.tsx, account/[section]/page.tsx, checkout/page.tsx were server components, but authApiFetch returns {} on the server (no browser token), so GET /orders/, /orders/{id}/ and /accounts/me/ never ran. They are now client components with loading/error/empty states.
-- src/services/account.ts maps backend order statuses (pending/confirmed/processing/shipped/delivered/cancelled) and maps payment_status, payment_method, payment_reference, delivery_status, and estimated_delivery from the supplied verified order shape. Missing values render as "—".
+- src/services/account.ts maps backend order statuses (pending/confirmed/processing/shipped/delivered/cancelled) and maps payment_status, payment_method, payment_reference, delivery_status, and estimated_delivery from the supplied verified order shape. Missing values render as "â€”".
 
 ### Newly wired endpoints
 - POST /accounts/logout/ -> AccountSidebar "Logout" button and OperationsFrame "Sign out", UNVERIFIED (needs a signed-in session).
@@ -239,3 +239,55 @@ Live checks this pass: GET /catalog/products/ (6 products), /catalog/products/{i
 - GET /deliveries/fees/ -> Operations / Deliveries fee schedule, VERIFIED from prior live result (200, `{success,data}` with three items).
 - Login top-level keys could not be checked on a successful live login in this shell. Login code accepts `tokens.access/refresh` and `data.access/refresh`; admin guard uses `profile.role === "super_admin"`.
 - Authenticated re-tests of login, /accounts/me/, /cart/, /orders/, /customers/, /orders/admin/all/, and /deliveries/admin/ were unavailable because TEST_ADMIN_* and TEST_CUSTOMER_* were absent. Do not treat the 401 unauthenticated probes as regressions.
+
+## Live verification and integration update (2026-10-19, credential-backed)
+This snapshot supersedes older UNVERIFIED entries below where the same endpoint is listed. Live scripts printed statuses, response keys/field names and test IDs only; credentials and tokens were never printed or saved. Render requests used a 90-second timeout and one retry.
+
+### VERIFIED LIVE
+- POST /auth/login/ -> customer and admin login, 200; response top-level keys message, tokens, user; tokens are at tokens.access and tokens.refresh. Used by src/lib/auth.ts.
+- POST /auth/refresh/ -> customer, 200; response keys access, refresh. Used by src/lib/auth.ts.
+- POST /accounts/logout/ -> customer, 200. Used by src/lib/auth.ts logout().
+- GET /accounts/me/ -> customer, 200; keys user_id, email, first_name, last_name, phone, residence, role, created_at, updated_at. Used by src/services/account.ts and profile pages.
+- PATCH /accounts/me/ -> invalid email only returned 200 with writable response fields first_name, last_name, phone, residence; invalid email was ignored and GET /accounts/me/ confirmed it remained unchanged. Valid profile updates remain UNVERIFIED. Used by AccountProfileForm.
+- GET /catalog/products/ and GET /catalog/products/4/ -> public, 200. List result keys: product_id, category, category_name, name, brand, price, stock_quantity, is_available, primary_image, average_rating, review_count. Product 4 accepted cart and checkout tests.
+- GET /catalog/categories/ -> public, 200, plain array; fields category_id, name, description, image, created_at, updated_at. Used by Header and shop filters.
+- GET /cart/ -> customer, 200, success/data envelope with items, total_items, total_price, has_out_of_stock_items. POST /cart/items/ with product_id and quantity -> 201; PATCH /cart/items/{cart_item_id}/ -> 200; DELETE same item -> 200. Used by src/hooks/useCart.tsx.
+- GET /wishlist/ -> customer, 200. POST /wishlist/items/ with product_id -> 201; POST /wishlist/items/{product_id}/move-to-cart/ -> 200. Move removed the wishlist entry; a following DELETE returned 404 because it was already removed. Used by src/hooks/useWishlist.tsx.
+- POST /orders/checkout/ -> customer, 201 using shipping_address, phone, delivery_method; response wraps order in data. GET /orders/ -> 200; GET /orders/{id}/ -> 200 with data wrapper; POST /orders/{id}/cancel/ -> 200 with data wrapper. Used by src/services/checkout.ts and src/services/account.ts.
+- GET /deliveries/orders/{id}/ and GET /deliveries/track/{tracking_number}/ -> customer, 200. Order delivery is an object with delivery_method, delivery_method_display, status/status_display, estimated_delivery, and tracking_number. Used by order detail and tracking pages.
+- GET /services/ -> customer, 200 paginated. POST /services/ with name, description, service_type='other' -> 201 success/data envelope; GET /services/{id}/ -> 200. Used by src/services/services.ts and service request forms.
+- POST /accounts/change-password/ with wrong current_password and the form's password_confirm key -> 400, field current_password. No password changed. Used by AccountProfileForm.
+- GET /orders/admin/all/ -> admin, 200 paginated. GET /customers/ and GET /customers/{user_id}/ -> admin, 200. Used by Operations Orders and Customers.
+- PATCH /orders/admin/{id}/status/ -> admin: invalid status returned 400 for field status; pending, confirmed, processing, shipped, delivered, and cancelled each returned 2xx on the AI TEST order. Used by Operations order detail; its dropdown values match this live set.
+- GET /deliveries/admin/, GET /deliveries/admin/couriers/, GET /deliveries/fees/ -> admin, 200. Courier records expose courier_id, email, name, phone, status. Used by Operations Deliveries.
+- GET /catalog/admin/products/4/stock-history/ -> admin, 200 paginated. A created AI TEST product returned 201, stock adjustment returned 200, and its history returned 200 with delta, quantity_before, resulting_stock_quantity, reason, user, created_at, movement_id, movement_type. The AI TEST movement appeared. Integrated in Operations Products edit panel.
+- GET /services/admin/ -> admin, 200 paginated. PATCH /services/admin/{id}/ -> invalid status returned 400 for status; new, in_progress, completed accepted with 2xx on the AI TEST request. Used by Operations IT Requests.
+- GET /promotions/admin/discounts/ -> admin, 200 paginated. POST with the admin form fields and date-only start_date/end_date -> 201; GET detail -> 200. Used by Operations Promotions.
+- GET /reviews/ and GET /reviews/?product=4 -> customer/admin, 200 paginated. Used by product reviews and Operations Reviews.
+- OPTIONS /reviews/{id}/ -> admin, 200; Allow: GET, HEAD, OPTIONS. No moderation write method exists; remove the misleading Demo data badge from the live list; keep moderation actions disabled.
+
+### BROKEN OR LIMITED LIVE RESULTS
+- POST /reviews/ -> customer, 400; response field: product. The form displays backend field errors; successful review creation was not verified.
+- PATCH /deliveries/admin/{id}/ with invalid status -> admin, 400; status error: "AI_TEST_INVALID" is not a valid choice. PATCH probes for courier, courier_id, assigned_courier, and assigned_courier_id returned 500, so courier assignment is not integrated.
+- DELETE /promotions/admin/discounts/{id}/ -> admin, 404, although the created discount was absent from detail and list afterward (GET detail then said "No Discount matches the given query."). The UI now checks the list after 404 before treating deletion as complete.
+- DELETE /catalog/admin/products/{id}/ -> admin, 409: "This item cannot be deleted because other records depend on it. Deactivate it instead." The AI TEST product is retained because it has stock-history dependency records.
+- DELETE /services/{id}/ -> customer, 405; service requests cannot be cleaned up through this route.
+- POST /auth/logout/ -> 404; the supported route is /accounts/logout/ (200).
+
+### UNVERIFIED / SAFETY SKIPPED
+- PATCH /accounts/me/ with valid field values remains unverified; only an invalid email was sent and ignored (200). No real profile values were changed.
+- POST /accounts/change-password/ remains unverified for successful changes; only a wrong current password was tested.
+- /cart/clear/ DELETE/POST methods were skipped because the account is not confirmed to be dedicated for testing. Cart items created by the run were individually deleted.
+- Courier assignment remains unverified because courier field probes returned 500; do not expose assignment controls until the backend confirms a field.
+- Admin review moderation is absent from OPTIONS; publish/hide/reply remain disabled and marked Demo data.
+
+### Additional read-only checks of documented missing routes (2026-10-19)
+- GET /reports/summary/?period=30d, GET /reports/export/?type=sales&format=csv, GET /payments/admin/, GET /notifications/admin/, GET /settings/admin/, GET /reviews/admin/1/, GET /customers/addresses/, GET /customers/payment-methods/, GET /support/tickets/, GET /notifications/, and GET /newsletter/subscribe/ all returned 404. The observed response is HTML: `<h1>Not Found</h1><p>The requested resource was not found on this server.</p>`.
+- OPTIONS /payments/initiate/, OPTIONS /reviews/admin/1/, OPTIONS /cart/apply-promo/, and OPTIONS /cart/promo/ returned 404 with the same Not Found page. These routes are absent.
+- POST /auth/google/ with an empty body returned 400, field `credential`; OPTIONS returned 200 with POST, OPTIONS. The backend route exists, but Google sign-in is not connected in the UI and a valid Google credential flow remains unverified.
+
+
+### Operations demo data correction
+- Payments now reads payment fields from verified GET /orders/admin/all/ through adminListOrders; dedicated GET /payments/admin/ remains missing, so settlement details are unavailable.
+- Notifications, Reports, and Settings no longer show fabricated values or claim local changes are saved; their backend endpoints returned 404.
+- Operations Reviews displays the live GET /reviews/ list. Moderation remains unavailable because the API has no write methods.\n

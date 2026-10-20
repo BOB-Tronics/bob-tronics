@@ -271,7 +271,7 @@ export interface WishlistItemAddInput {
   product_id: number;
 }
 
-// ---- Backend order types (UNVERIFIED) ----
+// ---- Backend order types (verified live for list, detail, checkout, delivery, and status fields) ----
 
 export interface BackendOrderItem {
   order_item_id: number;
@@ -302,6 +302,7 @@ export interface BackendOrderList {
   payment_method?: string;
   payment_reference?: string;
   delivery_status?: string;
+  delivery?: BackendOrderDelivery | string | null;
   estimated_delivery?: string | null;
   created_at: string;
 }
@@ -322,9 +323,19 @@ export interface BackendOrder {
   delivery_status?: string;
   estimated_delivery?: string | null;
   items: BackendOrderItem[];
-  delivery: string;
+  delivery: BackendOrderDelivery | string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface BackendOrderDelivery {
+  delivery_id?: number;
+  delivery_method?: string;
+  delivery_method_display?: string;
+  status?: string;
+  status_display?: string;
+  estimated_delivery?: string | null;
+  tracking_number?: string | null;
 }
 
 export interface OrderCheckoutInput {
@@ -503,7 +514,7 @@ export interface BackendDiscount {
 }
 
 // Body for creating/updating a discount via /promotions/admin/discounts/.
-// UNVERIFIED: discount_type values assumed to be "percentage" | "fixed".
+// VERIFIED live: "percentage" is accepted; other discount_type values remain unverified.
 export interface DiscountInput {
   product: number;
   discount_type: string;

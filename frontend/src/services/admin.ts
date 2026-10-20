@@ -1,6 +1,7 @@
 // Admin / operations API service (admin login required).
 // UNVERIFIED: built from OpenAPI schema; confirm all field mappings and admin role check.
 import { authApiFetch } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 import type {
   BackendAdminCustomerDetail,
   BackendAdminCustomerList,
@@ -84,6 +85,16 @@ export interface AdminOrderRow { id: string; orderId: number | null; customerNam
 export interface AdminCustomerRow { id: number | null; name: string; email: string; phone: string; residence: string; orders: string; totalSpent: string; createdAt: string; lastActive: string; role: string; isActive: string; recentOrders: AdminOrderRow[] }
 export interface AdminServiceRow { id: number | null; customerId: number | null; customerName: string; customerEmail: string; service: string; description: string; status: string; requestedAt: string; appointment: string; estimatedCost: string; finalCost: string }
 export interface AdminDeliveryRow { id:number; orderId:number|null; customerName:string; address:string; method:string; trackingNumber:string; status:string; shippingFee:string; shippedAt:string; deliveredAt:string; createdAt:string; updatedAt:string }
+export interface StockHistoryEntry {
+  movement_id: number;
+  delta: number;
+  quantity_before: number;
+  resulting_stock_quantity: number;
+  reason: string | null;
+  user: { user_id?: number; name?: string; email?: string } | string | null;
+  created_at: string | null;
+  movement_type?: string;
+}
 function asRecord(value: unknown): AdminRecord { return typeof value === "object" && value !== null && !Array.isArray(value) ? value as AdminRecord : {}; }
 function asText(value: unknown): string | null { return typeof value === "string" || typeof value === "number" ? String(value) : null; }
 function pickText(row: AdminRecord, keys: string[]): string { for (const key of keys) { const value=asText(row[key]); if(value!==null&&value.trim()!=="") return value; } return "—"; }
@@ -92,7 +103,7 @@ function listEnvelope(payload: unknown): { items: AdminRecord[]; count: number |
 // TEMPORARY: remove after verification. Log keys only; never log response values or personal data.
 function logAdminShape(endpoint: string,payload:unknown,method="GET"){if(process.env.NODE_ENV!=="development")return;const envelope=asRecord(payload);const first=Array.isArray(payload)?asRecord(payload[0]):Array.isArray(envelope.results)?asRecord(envelope.results[0]):Array.isArray(envelope.data)?asRecord(envelope.data[0]):envelope;const keys=Object.keys(first);if(keys.length)console.info(`[shape] ${method} ${endpoint} -> ${keys.join(", ")}`);}
 function mapOrderLine(value:unknown):AdminOrderLine{const row=asRecord(value);const product=asRecord(row.product);return {name:pickText(product,["name","product_name"])!=="—"?pickText(product,["name","product_name"]):pickText(row,["name","product_name"]),sku:pickText(product,["sku","product_sku"])!=="—"?pickText(product,["sku","product_sku"]):pickText(row,["sku","product_sku"]),quantity:pickText(row,["quantity","qty"]),unitPrice:pickText(row,["unit_price","price"]),subtotal:pickText(row,["subtotal","total","line_total"])};}
-function mapOrder(value:unknown):AdminOrderRow{const row=asRecord(value);const customer=asRecord(row.customer);const rawItems=Array.isArray(row.items)?row.items:Array.isArray(row.order_items)?row.order_items:[];const id=pickId(row,["order_id","id"]);const name=pickText(row,["customer_name","full_name"]);const paymentStatus=pickText(row,["payment_status"]);const paymentMethod=pickText(row,["payment_method"]);const paymentReference=pickText(row,["payment_reference"]);const deliveryStatus=pickText(row,["delivery_status"]);const estimatedDelivery=pickText(row,["estimated_delivery"]);return {id:id===null?pickText(row,["order_number","reference"]):String(id),orderId:id,customerName:name!=="—"?name:pickText(customer,["name","full_name"]),customerEmail:pickText(row,["customer_email","email"])!=="—"?pickText(row,["customer_email","email"]):pickText(customer,["email"]),orderDate:pickText(row,["order_date","created_at","date"]),totalAmount:pickText(row,["total_amount","total","amount"]),totalItems:pickText(row,["total_items","item_count"]),status:pickText(row,["status","order_status"]),statusDisplay:pickText(row,["status_display","order_status_display","status","order_status"]),paymentStatus:`Payment: ${paymentStatus} · Method: ${paymentMethod} · Reference: ${paymentReference}`,paymentMethod,paymentReference,deliveryStatus:`Delivery: ${deliveryStatus} · Estimated: ${estimatedDelivery}`,estimatedDelivery,shippingAddress:pickText(row,["shipping_address","delivery_address","address"]),phone:pickText(row,["phone","customer_phone"]),deliveryMethod:pickText(row,["delivery_method","shipping_method"]),createdAt:pickText(row,["created_at","order_date"]),updatedAt:pickText(row,["updated_at"]),items:rawItems.map(mapOrderLine)};}
+function mapOrder(value:unknown):AdminOrderRow{const row=asRecord(value);const customer=asRecord(row.customer);const rawItems=Array.isArray(row.items)?row.items:Array.isArray(row.order_items)?row.order_items:[];const id=pickId(row,["order_id","id"]);const name=pickText(row,["customer_name","full_name"]);const paymentStatus=pickText(row,["payment_status"]);const paymentMethod=pickText(row,["payment_method"]);const paymentReference=pickText(row,["payment_reference"]);const delivery=asRecord(row.delivery);const deliveryStatus=pickText({...row,delivery_status:row.delivery_status??delivery.status_display??delivery.status},["delivery_status"]);const estimatedDelivery=pickText({...row,estimated_delivery:row.estimated_delivery??delivery.estimated_delivery},["estimated_delivery"]);return {id:id===null?pickText(row,["order_number","reference"]):String(id),orderId:id,customerName:name!=="—"?name:pickText(customer,["name","full_name"]),customerEmail:pickText(row,["customer_email","email"])!=="—"?pickText(row,["customer_email","email"]):pickText(customer,["email"]),orderDate:pickText(row,["order_date","created_at","date"]),totalAmount:pickText(row,["total_amount","total","amount"]),totalItems:pickText(row,["total_items","item_count"]),status:pickText(row,["status","order_status"]),statusDisplay:pickText(row,["status_display","order_status_display","status","order_status"]),paymentStatus:`Payment: ${paymentStatus} · Method: ${paymentMethod} · Reference: ${paymentReference}`,paymentMethod,paymentReference,deliveryStatus:`Delivery: ${deliveryStatus} · Estimated: ${estimatedDelivery}`,estimatedDelivery,shippingAddress:pickText(row,["shipping_address","delivery_address","address"]),phone:pickText(row,["phone","customer_phone"]),deliveryMethod:pickText({...delivery,...row},["delivery_method_display","delivery_method","shipping_method"]),createdAt:pickText(row,["created_at","order_date"]),updatedAt:pickText(row,["updated_at"]),items:rawItems.map(mapOrderLine)};}
 function mapCustomer(value:unknown):AdminCustomerRow{const row=asRecord(value);const first=pickText(row,["first_name"]);const last=pickText(row,["last_name"]);const full=pickText(row,["name","customer_name","full_name"]);return {id:pickId(row,["user_id","customer_id","id"]),name:full!=="—"?full:[first,last].filter(x=>x!=="—").join(" ")||"—",email:pickText(row,["email","customer_email"]),phone:pickText(row,["phone"]),residence:pickText(row,["residence","address"]),orders:pickText(row,["total_orders","order_count","orders_count"]),totalSpent:pickText(row,["total_spent","total_amount_spent"]),createdAt:pickText(row,["created_at","date_joined"]),lastActive:pickText(row,["last_active","last_login"]),role:pickText(row,["role"]),isActive:typeof row.is_active==="boolean"?(row.is_active?"Active":"Inactive"):pickText(row,["status"]),recentOrders:Array.isArray(row.recent_orders)?row.recent_orders.map(mapOrder):[]};}
 function unwrapDetail(payload:unknown,wrapper:string):unknown{const row=asRecord(payload);return row.data??row.result??row[wrapper]??payload;}
 function mapService(value:unknown):AdminServiceRow{const row=asRecord(value);const customer=asRecord(row.user??row.customer);const name=pickText(row,["customer_name","user_name"]);const email=pickText(row,["customer_email","email"]);return {id:pickId(row,["service_id","request_id","id"]),customerId:pickId(row,["user_id","customer_id"])??pickId(customer,["user_id","customer_id","id"]),customerName:name!=="—"?name:pickText(customer,["name","full_name"]),customerEmail:email!=="—"?email:pickText(customer,["email"]),service:pickText(row,["service_type_display","service_type","name","title"]),description:pickText(row,["description","details"]),status:pickText(row,["status_display","status","request_status"]),requestedAt:pickText(row,["requested_at","created_at","date"]),appointment:pickText(row,["appointment_at","appointment_date","scheduled_at"]),estimatedCost:pickText(row,["estimated_cost","estimated_fee"]),finalCost:pickText(row,["final_cost","actual_cost"])};}
@@ -229,6 +240,12 @@ export async function adminDeleteProduct(productId: number) {
   return authApiFetch(`/catalog/admin/products/${productId}/`, { method: "DELETE" });
 }
 
+export async function adminListStockHistory(productId: number): Promise<StockHistoryEntry[]> {
+  const response = await authApiFetch<unknown>(`/catalog/admin/products/${productId}/stock-history/`);
+  const entries = listResults(response as CatalogList<StockHistoryEntry> | null);
+  return entries.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+}
+
 export async function adminAdjustStock(productId: number, data: StockAdjustmentInput) {
   return authApiFetch<BackendProduct>(`/catalog/admin/products/${productId}/adjust-stock/`, {
     method: "POST",
@@ -275,7 +292,15 @@ export async function adminPatchDiscount(discountId: number, data: Partial<Disco
 }
 
 export async function adminDeleteDiscount(discountId: number) {
-  return authApiFetch(`/promotions/admin/discounts/${discountId}/`, { method: "DELETE" });
+  try {
+    return await authApiFetch(`/promotions/admin/discounts/${discountId}/`, { method: "DELETE" });
+  } catch (error) {
+    // The live API removes the discount but responds 404; confirm it is absent before treating that as success.
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+    const remaining = await adminListDiscounts();
+    if (remaining.some((discount) => discount.discount_id === discountId)) throw error;
+    return null;
+  }
 }
 
 // NOTE: /catalog/admin/discounts/ is a duplicate of /promotions/admin/discounts/.
