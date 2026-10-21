@@ -1,6 +1,6 @@
 # Missing backend endpoints
 
-Backend: https://bobtronics-store-backend.onrender.com/api/v1
+Backend: https://bobtronics-store-backend-zdan.onrender.com/api/v1
 Date: 2026-10-19
 
 Every endpoint in the current API list is integrated in the frontend. The screens below still

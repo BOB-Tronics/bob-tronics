@@ -7,6 +7,7 @@ import { getCategories, getProducts } from "@/services/products";
 import { applyPromotions, getActivePromotions } from "@/services/promotions";
 
 export const metadata = { title: "Shop · BOB TRONICS" };
+export const dynamic = "force-dynamic";
 
 export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
   const params = await searchParams;

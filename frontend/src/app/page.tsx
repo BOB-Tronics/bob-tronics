@@ -14,6 +14,8 @@ import { getCategories, getProducts } from "@/services/products";
 import { applyPromotions, getActivePromotions } from "@/services/promotions";
 import type { Product } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [categories, productList, services, reviews, promotions] = await Promise.all([
     getCategories(),

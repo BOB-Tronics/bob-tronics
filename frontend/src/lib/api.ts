@@ -35,6 +35,9 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T | null> {
+  if (!API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is not set");
+  }
   const url = `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const isFormDataBody =
     typeof FormData !== "undefined" && options.body instanceof FormData;
