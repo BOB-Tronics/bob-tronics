@@ -4,6 +4,51 @@ Backend: https://bobtronics-store-backend.onrender.com/api/v1
 API base: NEXT_PUBLIC_API_URL ends with /api/v1. All paths end with a trailing slash.
 Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs only; BROKEN = tested, wrong status/body.
 
+## Current live verification snapshot (2026-10-21)
+
+This snapshot is authoritative and supersedes earlier dated UNVERIFIED/BROKEN notes below where results conflict. Live probes used 90-second requests with one retry, printed statuses/field names only, and created only AI TEST records.
+
+### VERIFIED
+- Public: `GET /catalog/products/` 200; product detail and category products 200; `GET /catalog/categories/` 200 plain array; `GET /promotions/products/4/` 200 with `has_discount`, product, price, discount, savings, and date fields.
+- Auth: customer/admin `POST /auth/login/` 200, keys `message`, `user`, `tokens` (tokens at `tokens.access` and `tokens.refresh`); customer `POST /auth/refresh/` 200, keys `access`, `refresh`; `GET /accounts/me/` 200 with `user_id`, `first_name`, `last_name`, `email`, `phone`, `residence`, `role`, `created_at`, `updated_at`; fresh-token `POST /accounts/logout/` 200.
+- Customer cart: `GET /cart/` 200, `success/data` wrapper with `items`, `total_items`, `total_price`, `has_out_of_stock_items`; `POST /cart/items/` 201, `PATCH /cart/items/{id}/` 200, `DELETE /cart/items/{id}/` 200 on this run's items.
+- Customer wishlist: `GET /wishlist/` 200, `success/data` wrapper with `items`, `total_saved`; `POST /wishlist/items/` 201; move-to-cart 200. Moving removes the wishlist record; the subsequent DELETE returned 404 for that already-removed item. `useWishlist` now unwraps the real envelope and presents load errors/retry.
+- Customer orders: `POST /orders/checkout/` 201 with the form's `shipping_address`, `phone`, and `delivery_method`; order detail keys include `items`, `delivery`, payment fields, and dates. `GET /orders/` 200 paginated; `GET /orders/{id}/` 200; `POST /orders/{id}/cancel/` 200. Exactly one test order was placed and canceled.
+- Customer delivery: `GET /deliveries/orders/{id}/` 200; tracking by that order's number 200. `GET /customers/address/` 200 with `residence`, `phone`.
+- Services: customer list/create/detail 200/201/200; `service_type: "other"` accepted. Admin list/detail/PATCH work; invalid status is 400 on `status`; accepted values are `new`, `in_progress`, `completed`.
+- Reviews: customer create 201; list, product-filtered list, and detail 200. Fields are `feedback_id`, `user`, `product`, `rating`, `comment`, `created_at`, `updated_at`; `user` and `product` are scalar IDs. `OPTIONS /reviews/{created_id}/` is 200 with `Allow: GET, HEAD, OPTIONS`.
+- Admin orders/customers: order list/detail, customer list/detail 200. Invalid order status is 400 on `status`; accepted values are `pending`, `confirmed`, `processing`, `shipped`, `delivered`, `cancelled`.
+- Admin deliveries: delivery list, couriers, and fees 200. Fee records use `method`, `name`, `fee`, `estimated_days`.
+- Admin catalog: categories, products, images list 200. Product create with the Add Product form's fields 201; stock adjustment 200; stock history 200 with `movement_id`, `delta`, `quantity_before`, `resulting_stock_quantity`, `movement_type`, `reason`, `user`, `created_at`. The AI TEST movement was present. Image list filter `?product=` is accepted and paginated.
+- Admin discounts: list 200; AI TEST discount create 201, detail 200, delete 204.
+- Profile/password validation: invalid-type `PATCH /accounts/me/` returns 400 on `first_name`; wrong-current-password returns 400 on `current_password`. No profile or password was changed.
+- Admin review moderation is absent: review detail OPTIONS allows only GET, HEAD, OPTIONS. No active page uses the `DemoDataBadge` component; review moderation controls remain disabled.
+- Post-integration regression: customer and admin login/logout, customer profile, public products/categories, customer cart/orders, admin customer list/detail, admin orders, and admin deliveries/couriers/fees all returned 200 (logout 200) after the final code changes.
+
+### BROKEN / NOT PROVIDED
+- `GET /deliveries/methods/` -> 404 Not Found. `getDeliveryMethods()` now uses the verified `GET /deliveries/fees/` fields instead.
+- `PATCH /deliveries/admin/{id}/` with invalid status -> 400, field `status`, message `Request validation failed`. Courier-key probes `courier`, `courier_id`, `assigned_courier`, `assigned_courier_id` each returned 500. Do not add courier assignment controls; no accepted courier field was confirmed.
+- `DELETE /services/{id}/` -> 405, `Method "DELETE" not allowed.` The AI TEST service request cannot be removed.
+- `DELETE /catalog/admin/products/{id}/` for the created AI TEST product -> 409, `This item cannot be deleted because other records depend on it. Deactivate it instead.` The product was deactivated and its stock restored to zero; it remains due to its stock-history records.
+- Review moderation has no write method; there is no publish/hide/reply endpoint.
+
+### UNVERIFIED / SAFETY-SKIPPED
+- `DELETE /cart/clear/` and `POST /cart/clear/` were skipped: the customer account is not confirmed dedicated to testing. This run individually removed the item it added; checkout consumed its own cart line.
+- Successful `PATCH /accounts/me/` and successful `POST /accounts/change-password/` are unverified; no real account values/password were changed.
+- Account activation, password-reset flows, and successful Google sign-in require email-link/reset tokens or a real third-party credential; they were not exercised.
+- Product/category/image update methods other than the tested product PATCH, discount PUT/PATCH, and image mutations were not exercised because they would require modifying existing records or additional AI TEST records.
+- Active promotion item mapping remains unverified for populated public results. Review status and verified-purchase status are not returned; missing values display as `—` and no purchase-verification label is shown.
+- Delivery status values beyond the invalid-status validation, successful delivery status changes, and accepted courier assignment remain unverified.
+
+### Test records and integration follow-up
+- Order `3`: created from the customer's AI TEST cart line, read in customer/admin paths, canceled successfully.
+- Service request `2` and review `1`: created as AI TEST records; service DELETE returned 405; review OPTIONS showed no DELETE/write method. Both remain.
+- Product `13`: created, adjusted `0 → 1`, history confirmed, stock reset to `0`, deactivated; deletion was refused with 409.
+- Discount `3`: created against product `13` and deleted with 204.
+- Cart line `10` was individually deleted; line `11` was consumed by checkout. Wishlist product `12` was moved to cart (removing the wishlist entry); cart clear was not called.
+- A reused name `AI TEST Product` was rejected on `name`; retrying with a unique AI TEST name succeeded. No existing AI TEST record was modified or deleted.
+- Integration fix: the live `{success, data}` wishlist envelope was previously read as empty; `useWishlist` now unwraps `data.items` and exposes loading/error/retry. Review cards no longer claim “Verified purchase/customer” because that field is absent. Delivery fee mapping now uses the observed `method`, `name`, `fee`, `estimated_days` fields rather than the missing `/deliveries/methods/` route.
+
 ## Schema
 - GET /api/schema/ -> 404 Not Found (no OpenAPI schema exposed by backend)
 - GET /api/schema/?format=json -> 404 Not Found

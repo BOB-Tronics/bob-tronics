@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import OperationsShell from "@/components/operations/OperationsShell";
 import { adminErrorMessage, adminFieldErrors, adminListCouriers, adminListDeliveries, adminPatchDeliveryStatus, getDeliveryFees, type AdminDeliveryRow } from "@/services/admin";
 
-// UNVERIFIED: delivery PATCH is based on the supplied fields; no existing delivery is modified during integration.
+// Delivery lists and fee/courier reads are live-verified; courier assignment returned server errors.
 export default function OperationsDeliveriesPage() {
   const [items,setItems]=useState<AdminDeliveryRow[]>([]),[couriers,setCouriers]=useState<Record<string,unknown>[]>([]),[fees,setFees]=useState<Record<string,unknown>[]>([]);
   const [loading,setLoading]=useState(true),[error,setError]=useState(""),[courierError,setCourierError]=useState(""),[feeError,setFeeError]=useState(""),[query,setQuery]=useState(""),[selected,setSelected]=useState<number|null>(null),[status,setStatus]=useState(""),[saving,setSaving]=useState(false),[fieldErrors,setFieldErrors]=useState<Record<string,string>>({}),[message,setMessage]=useState("");
@@ -21,4 +21,3 @@ export default function OperationsDeliveriesPage() {
     <div className="mt-5 grid gap-5 xl:grid-cols-2"><section className="rounded-2xl bg-white p-5 shadow-card"><h2 className="mb-4 text-lg font-bold">Couriers</h2>{courierError?<p role="alert" className="text-sm text-rose-700">{courierError}<button onClick={()=>void load()} className="ml-2 underline">Retry</button></p>:loading?"Loading couriers…":couriers.length?couriers.map((courier,index)=><p key={index} className="border-t py-3 text-sm">{Object.values(courier).map(value=>typeof value==="string"||typeof value==="number"?String(value):"").filter(Boolean).join(" · ")||"—"}</p>):"No couriers found."}</section><section className="rounded-2xl bg-white p-5 shadow-card"><h2 className="mb-4 text-lg font-bold">Delivery fees</h2>{feeError?<p role="alert" className="text-sm text-rose-700">{feeError}<button onClick={()=>void load()} className="ml-2 underline">Retry</button></p>:loading?"Loading fee schedule…":fees.length?fees.map((fee,index)=><p key={index} className="border-t py-3 text-sm">{Object.entries(fee).map(([key,value])=>`${key}: ${typeof value==="string"||typeof value==="number"?value:"—"}`).join(" · ")}</p>):"No fee schedule found."}</section></div>
   </OperationsShell>;
 }
-

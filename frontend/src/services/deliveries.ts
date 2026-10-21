@@ -1,6 +1,5 @@
-// Delivery endpoints: public tracking by tracking number, and per-order delivery (login required).
-// UNVERIFIED: built from docs; /deliveries/track/{tracking_number}/ was only tested with an
-// unknown number (404 with the standard error envelope).
+// Live-verified public tracking, per-order delivery, and the delivery fee schedule.
+import { useState } from "react";
 import { apiFetch, ApiError, isMockMode } from "@/lib/api";
 import { authApiFetch } from "@/lib/auth";
 import type { BackendDelivery, BackendDeliveryTracking } from "@/types";
@@ -23,8 +22,8 @@ export interface DeliveryMethod {
   id: string;
   name: string;
   displayName: string;
-  fee: number;
-  estimatedDays: number;
+  fee: number | null;
+  estimatedDays: number | null;
 }
 
 function mapBackendDeliveryTracking(item: BackendDeliveryTracking): DeliveryTracking {
@@ -46,31 +45,40 @@ function mapBackendDeliveryTracking(item: BackendDeliveryTracking): DeliveryTrac
 // The per-order endpoint may return the fuller Delivery shape (nested order) or the
 // tracking shape; both are mapped to the same view model.
 function mapBackendDelivery(item: BackendDelivery | BackendDeliveryTracking): DeliveryTracking {
-  if ("order" in item && item.order && typeof item.order === "object") {
-    return {
-      trackingNumber: item.tracking_number,
-      orderId: item.order.order_id,
-      status: item.status,
-      statusDisplay: item.status_display || item.status,
-      deliveryMethod: item.delivery_method,
-      deliveryMethodDisplay: item.delivery_method_display || item.delivery_method,
-      deliveryAddress: item.delivery_address,
-      shippedAt: item.shipped_at,
-      deliveredAt: item.delivered_at,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-    };
+  if ("order_id" in item) {
+    return mapBackendDeliveryTracking(item);
   }
-  return mapBackendDeliveryTracking(item as BackendDeliveryTracking);
+  return {
+    trackingNumber: item.tracking_number,
+    orderId: item.order.order_id,
+    status: item.status,
+    statusDisplay: item.status_display || item.status,
+    deliveryMethod: item.delivery_method,
+    deliveryMethodDisplay: item.delivery_method_display || item.delivery_method,
+    deliveryAddress: item.delivery_address,
+    shippedAt: item.shipped_at,
+    deliveredAt: item.delivered_at,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+  };
 }
 
-function mapBackendDeliveryMethod(item: { delivery_method: string; delivery_method_display: string; shipping_fee: string }): DeliveryMethod {
+function numericValue(value: unknown): number | null {
+  if ((typeof value !== "number" && typeof value !== "string") || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function mapBackendDeliveryMethod(value: unknown): DeliveryMethod {
+  const item = typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
   return {
-    id: item.delivery_method,
-    name: item.delivery_method,
-    displayName: item.delivery_method_display || item.delivery_method,
-    fee: Number(item.shipping_fee) || 0,
-    estimatedDays: 0,
+    id: typeof item.method === "string" ? item.method : "—",
+    name: typeof item.name === "string" ? item.name : "—",
+    displayName: typeof item.name === "string" ? item.name : "—",
+    fee: numericValue(item.fee),
+    estimatedDays: numericValue(item.estimated_days),
   };
 }
 
@@ -109,16 +117,24 @@ export async function getDeliveryForOrder(orderId: string | number): Promise<Del
   }
 }
 
-// Available delivery methods and fees (login required).
+// The methods endpoint is absent (404); the verified fee schedule supplies this data instead.
 export async function getDeliveryMethods(): Promise<DeliveryMethod[]> {
   if (isMockMode()) {
     return [];
   }
-  try {
-    const response = await apiFetch<{ results: Array<{ delivery_method: string; delivery_method_display: string; shipping_fee: string }> }>("/deliveries/methods/");
-    if (!response || !response.results) return [];
-    return response.results.map(mapBackendDeliveryMethod);
-  } catch {
-    return [];
-  }
+  const response = await apiFetch<unknown>("/deliveries/fees/");
+  if (!response) return [];
+  const outer = typeof response === "object" && !Array.isArray(response) && response !== null
+    ? response as { results?: unknown; data?: unknown }
+    : null;
+  const values = Array.isArray(response)
+    ? response
+    : Array.isArray(outer?.results)
+      ? outer.results
+      : Array.isArray(outer?.data)
+        ? outer.data
+        : outer?.data && typeof outer.data === "object" && "results" in outer.data && Array.isArray(outer.data.results)
+          ? outer.data.results
+        : [];
+  return values.map(mapBackendDeliveryMethod);
 }

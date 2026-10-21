@@ -1,5 +1,5 @@
 // Admin / operations API service (admin login required).
-// UNVERIFIED: built from OpenAPI schema; confirm all field mappings and admin role check.
+// Live-verified list/detail/create and status contracts are recorded in INTEGRATION_TODO.md.
 import { authApiFetch } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import type {
@@ -215,7 +215,7 @@ export async function adminDeleteImage(imageId: number) {
   return authApiFetch(`/catalog/admin/images/${imageId}/`, { method: "DELETE" });
 }
 
-// UNVERIFIED: product create body uses fields already present in the admin form and BackendProduct type.
+// Live-verified with the same fields as the Add product form.
 export async function adminListProducts() {
   return listResults(await authApiFetch<CatalogList<BackendProduct>>("/catalog/admin/products/"));
 }
@@ -241,8 +241,8 @@ export async function adminDeleteProduct(productId: number) {
 }
 
 export async function adminListStockHistory(productId: number): Promise<StockHistoryEntry[]> {
-  const response = await authApiFetch<unknown>(`/catalog/admin/products/${productId}/stock-history/`);
-  const entries = listResults(response as CatalogList<StockHistoryEntry> | null);
+  const response = await authApiFetch<CatalogList<StockHistoryEntry>>(`/catalog/admin/products/${productId}/stock-history/`);
+  const entries = listResults(response);
   return entries.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 }
 
@@ -313,10 +313,10 @@ export async function adminGetCustomer(userId:number):Promise<AdminCustomerRow>{
 // ---- Services admin ----
 export async function adminListServices():Promise<AdminListResult<AdminServiceRow>>{const endpoint="/services/admin/";const response=await authApiFetch<unknown>(endpoint);logAdminShape(endpoint,response);const list=listEnvelope(response);return {results:list.items.map(mapService),count:list.count};}
 function mapDelivery(value:unknown):AdminDeliveryRow{const row=asRecord(value);const order=asRecord(row.order);return{id:pickId(row,["delivery_id","id"])??0,orderId:pickId(order,["order_id"])??pickId(row,["order_id"]),customerName:pickText(order,["customer_name"]),address:pickText(row,["delivery_address"]),method:pickText(row,["delivery_method"]),trackingNumber:pickText(row,["tracking_number"]),status:pickText(row,["status"]),shippingFee:pickText(row,["shipping_fee"]),shippedAt:pickText(row,["shipped_at"]),deliveredAt:pickText(row,["delivered_at"]),createdAt:pickText(row,["created_at"]),updatedAt:pickText(row,["updated_at"])};}
-// UNVERIFIED: delivery status writes use the supplied contract and are not live-tested.
+// Live verification confirms invalid status is rejected on the test order's delivery.
 export async function adminListDeliveries():Promise<AdminListResult<AdminDeliveryRow>>{const response=await authApiFetch<unknown>("/deliveries/admin/");const list=listEnvelope(response);return{results:list.items.map(mapDelivery),count:list.count};}
 export async function adminPatchDeliveryStatus(id:number,status:string){return authApiFetch<unknown>(`/deliveries/admin/${id}/`,{method:"PATCH",body:jsonBody({status})});}
-// UNVERIFIED: courier and fee record fields were not supplied; preserve their JSON records.
+// Courier and fee responses are live-verified; retain backend fields for display.
 export async function adminListCouriers():Promise<AdminRecord[]>{return listEnvelope(await authApiFetch<unknown>("/deliveries/admin/couriers/")).items;}
 export async function getDeliveryFees():Promise<AdminRecord[]>{return listEnvelope(await authApiFetch<unknown>("/deliveries/fees/")).items;}
 export async function adminGetService(serviceId:number):Promise<AdminServiceRow>{const endpoint=`/services/admin/${serviceId}/`;const response=await authApiFetch<unknown>(endpoint);logAdminShape(endpoint,response);return mapService(unwrapDetail(response,"service_request"));}

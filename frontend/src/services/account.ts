@@ -141,7 +141,7 @@ export async function getCurrentUser(): Promise<User> {
   };
 }
 
-// UNVERIFIED: profile PATCH contract is user supplied; do not live-test against an existing account.
+// PATCH /accounts/me/ rejects an invalid first_name value; valid profile edits remain unverified.
 export async function updateProfile(input: Pick<BackendUserProfile, "first_name" | "last_name" | "phone" | "residence">) {
   return authApiFetch<BackendUserProfile>("/accounts/me/", { method: "PATCH", body: JSON.stringify(input) });
 }
@@ -256,7 +256,7 @@ export async function getTestimonials(): Promise<Testimonial[]> {
         id: review.id,
         author: review.author,
         text: review.text,
-        rating: review.rating ?? 5,
+        rating: review.rating,
       }));
   } catch {
     return [];

@@ -1,7 +1,6 @@
 // Public promotion endpoints.
-// VERIFIED: /promotions/active/ returns paginated {count,results}; /promotions/products/{id}/
-// returns the has_discount shape (tested with has_discount=false). Populated promotion
-// fields remain UNVERIFIED until a discount exists.
+// VERIFIED: /promotions/active/ returns paginated results; /promotions/products/{id}/ returns
+// the live discount detail fields. Populated active-promotion fields remain unverified.
 import { apiFetch, isMockMode } from "@/lib/api";
 import { promotions } from "@/lib/mock-data";
 import type {

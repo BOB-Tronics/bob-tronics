@@ -13,7 +13,7 @@ function errorsFrom(error: unknown): Record<string,string> {
   return Object.fromEntries(Object.entries(details).flatMap(([key,value])=>{const message=typeof value==="string"?value:Array.isArray(value)&&typeof value[0]==="string"?value[0]:null;return message?[[key,message]]:[]}));
 }
 
-// UNVERIFIED: profile and password forms use the supplied request fields; live writes are not performed.
+// Invalid-value live probes confirmed field errors; successful profile/password changes remain unverified.
 export default function AccountProfileForm({user}:{user:User}) {
  const [firstName,setFirstName]=useState(user.firstName),[lastName,setLastName]=useState(user.lastName),[phone,setPhone]=useState(user.phone),[residence,setResidence]=useState(user.residence??"");
  const [profileErrors,setProfileErrors]=useState<Record<string,string>>({}),[passwordErrors,setPasswordErrors]=useState<Record<string,string>>({}),[error,setError]=useState(""),[notice,setNotice]=useState(""),[saving,setSaving]=useState(false),[passwordSaving,setPasswordSaving]=useState(false);

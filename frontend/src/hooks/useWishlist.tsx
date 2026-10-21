@@ -9,6 +9,9 @@ const STORAGE_KEY = "bobtronics-wishlist";
 
 interface WishlistContextValue {
   ids: string[];
+  loading: boolean;
+  error: string;
+  reload: () => void;
   has: (productId: string) => boolean;
   toggle: (productId: string) => void;
   remove: (productId: string) => void;
@@ -18,15 +21,20 @@ interface WishlistContextValue {
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
-// GET /wishlist/ may return a plain list or an object wrapping the items.
-// UNVERIFIED: shape not yet confirmed with a signed-in customer.
+// GET /wishlist/ returns success/data with data.items for a signed-in customer.
 type BackendWishlistResponse =
   | BackendWishlistItem[]
-  | { items?: BackendWishlistItem[]; results?: BackendWishlistItem[] };
+  | {
+      items?: BackendWishlistItem[];
+      results?: BackendWishlistItem[];
+      data?: BackendWishlistItem[] | { items?: BackendWishlistItem[]; results?: BackendWishlistItem[] };
+    };
 
 function wishlistItemsFrom(response: BackendWishlistResponse | null): BackendWishlistItem[] {
   if (!response) return [];
   if (Array.isArray(response)) return response;
+  if (Array.isArray(response.data)) return response.data;
+  if (response.data) return response.data.items ?? response.data.results ?? [];
   return response.items ?? response.results ?? [];
 }
 
@@ -34,35 +42,51 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const cart = useCart();
   const [ids, setIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadAttempt, setReloadAttempt] = useState(0);
 
   // ---- Load: backend when signed in, localStorage when signed out ----
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
+      setError("");
       if (isAuthenticated()) {
         try {
           const response = await authApiFetch<BackendWishlistResponse>("/wishlist/");
           if (!cancelled) {
             setIds(wishlistItemsFrom(response).filter((item) => item?.product).map((item) => String(item.product.product_id)));
           }
-        } catch {
-          // Keep empty wishlist on error.
+        } catch (loadError) {
+          if (!cancelled) {
+            setError(loadError instanceof Error ? loadError.message : "Your wishlist could not be loaded.");
+          }
         }
       } else {
         try {
           const saved = localStorage.getItem(STORAGE_KEY);
           if (!cancelled && saved) setIds(JSON.parse(saved));
-        } catch {
-          // Fall back to empty list.
+        } catch (loadError) {
+          if (!cancelled) {
+            setError(loadError instanceof Error ? loadError.message : "Your wishlist could not be loaded.");
+          }
         }
       }
-      if (!cancelled) setLoaded(true);
+      if (!cancelled) {
+        setLoaded(true);
+        setLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadAttempt]);
+
+  function reload() {
+    setReloadAttempt((attempt) => attempt + 1);
+  }
 
   useEffect(() => {
     if (!loaded) return;
@@ -87,8 +111,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
               method: "DELETE",
             });
             setIds((current) => current.filter((id) => id !== productId));
-          } catch {
-            // Backend error surfaces via caller error handling.
+            setError("");
+          } catch (mutationError) {
+            setError(mutationError instanceof Error ? mutationError.message : "The wishlist could not be updated.");
           }
         } else {
           try {
@@ -97,8 +122,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
               body: JSON.stringify({ product_id: Number(productId) }),
             });
             setIds((current) => [...current, productId]);
-          } catch {
-            // Backend error surfaces via caller error handling.
+            setError("");
+          } catch (mutationError) {
+            setError(mutationError instanceof Error ? mutationError.message : "The wishlist could not be updated.");
           }
         }
       })();
@@ -120,8 +146,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
             method: "DELETE",
           });
           setIds((current) => current.filter((id) => id !== productId));
-        } catch {
-          // Backend error surfaces via caller error handling.
+          setError("");
+        } catch (mutationError) {
+          setError(mutationError instanceof Error ? mutationError.message : "The wishlist could not be updated.");
         }
       })();
       return;
@@ -145,7 +172,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <WishlistContext.Provider value={{ ids, has, toggle, remove, moveToCart }}>
+    <WishlistContext.Provider value={{ ids, loading, error, reload, has, toggle, remove, moveToCart }}>
       {children}
     </WishlistContext.Provider>
   );

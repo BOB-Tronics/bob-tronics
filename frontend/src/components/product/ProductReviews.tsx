@@ -151,7 +151,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
         <ul className="mt-6 divide-y divide-line">
           {reviews.map((review) => (
             <li key={review.id} className="py-4">
-              <p className="font-semibold text-ink">{review.author} · Verified purchase</p>
+              <p className="font-semibold text-ink">{review.author}</p>
               <div className="mt-1 flex items-center gap-2 text-sm text-muted">
                 <Rating value={review.rating ?? 0} variant="stars" /> · {review.date !== "—" ? formatDate(review.date) : "—"}
               </div>
