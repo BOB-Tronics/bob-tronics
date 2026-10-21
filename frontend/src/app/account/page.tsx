@@ -62,8 +62,14 @@ export default function AccountOverviewPage() {
     <>
       <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <StatCard value={orders.length} label="Orders" />
-        <StatCard value={wishlist.ids.length} label="Saved products" />
+        <StatCard value={wishlist.loading || wishlist.error ? "—" : wishlist.ids.length} label="Saved products" />
       </div>
+      {wishlist.error && (
+        <p role="alert" className="text-sm text-red-600">
+          {wishlist.error}
+          <button onClick={wishlist.reload} className="ml-2 font-semibold underline">Retry</button>
+        </p>
+      )}
 
       {latest && (
         <Card>
@@ -136,7 +142,7 @@ export default function AccountOverviewPage() {
   );
 }
 
-function StatCard({ value, label }: { value: number; label: string }) {
+function StatCard({ value, label }: { value: number | string; label: string }) {
   return (
     <Card>
       <p className="text-4xl font-extrabold text-primary">{value}</p>

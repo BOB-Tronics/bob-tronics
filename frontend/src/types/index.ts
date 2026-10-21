@@ -160,11 +160,11 @@ export interface Testimonial {
   id: string;
   author: string;
   text: string;
-  rating: number;
+  rating: number | null;
 }
 
 // The account UI uses a separate camel-case User view model above.
-// UNVERIFIED: confirm login and /accounts/me/ against the real backend in-browser.
+// Login and /accounts/me/ have been verified with test customer and admin accounts.
 export type UserRole = "customer" | "admin" | "super_admin";
 
 export interface BackendUser {
@@ -222,7 +222,7 @@ export interface MessageResponse {
   message: string;
 }
 
-// ---- Backend cart types (UNVERIFIED) ----
+// ---- Backend cart types (verified live: item fields and quantity mutations) ----
 
 export interface BackendCartItem {
   cart_item_id: number;
@@ -250,7 +250,7 @@ export interface PatchedCartItemUpdate {
   quantity: number;
 }
 
-// ---- Backend wishlist types (UNVERIFIED) ----
+// ---- Backend wishlist types (verified live: item fields and move-to-cart) ----
 
 export interface BackendWishlistItem {
   wishlist_item_id: number;
@@ -344,7 +344,7 @@ export interface OrderCheckoutInput {
   delivery_method?: "standard" | "express" | "store_pickup";
 }
 
-// ---- Backend service types (UNVERIFIED) ----
+// ---- Backend service types (verified live for customer/admin list, detail, create, and status) ----
 
 export interface BackendService {
   service_id: number;
@@ -376,7 +376,7 @@ export interface PatchedAdminServiceUpdate {
   final_cost?: string | null;
 }
 
-// ---- Backend review types (UNVERIFIED) ----
+// ---- Backend review types (verified live for list, detail, and create) ----
 
 export interface BackendFeedback {
   feedback_id: number;
@@ -424,7 +424,7 @@ export interface BackendProductDiscountDetail {
   end_date: string | null;
 }
 
-// ---- Backend delivery types (UNVERIFIED) ----
+// ---- Backend delivery types (verified live for customer tracking and admin listing) ----
 
 export interface BackendDelivery {
   delivery_id: number;
@@ -462,7 +462,7 @@ export interface BackendDeliveryTracking {
   updated_at: string;
 }
 
-// ---- Backend catalog admin types (UNVERIFIED) ----
+// ---- Backend catalog admin types (verified live for list, create, stock history, and update) ----
 
 export interface BackendCategory {
   category_id: number;
@@ -478,7 +478,6 @@ export interface BackendProduct {
   category: number;
   category_name: string;
   name: string;
-  // UNVERIFIED: description/warranty/images are admin detail fields beyond the known public list contract.
   description?: string;
   brand: string;
   price: string;

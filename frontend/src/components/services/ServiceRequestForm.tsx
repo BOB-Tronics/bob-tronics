@@ -86,7 +86,7 @@ export default function ServiceRequestForm({
     }
     setStatus("saving");
     try {
-      // UNVERIFIED: the documented input type has only name, description, and service_type; confirm the backend meaning of name and accepted service_type values.
+      // Live-verified request fields are name, description, and service_type.
       const result = await createService({
         name: name.trim(),
         description: `${service}: ${need.trim()}\nPreferred appointment: ${appointmentLabel} (${onSite ? "On-site" : "Remote"}).\nLocation: ${location.trim() || "Not provided"}.\nContact phone: ${phone.trim()}\nContact email: ${email.trim()}`,
@@ -140,4 +140,3 @@ export default function ServiceRequestForm({
     </form>
   </Card>;
 }
-

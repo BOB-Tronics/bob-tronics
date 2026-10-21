@@ -1,6 +1,6 @@
 // Review endpoints: public list/detail, authenticated create.
-// UNVERIFIED: confirm populated review field aliases against the live backend
-// (the live list is currently empty: {"count":0,"results":[]}).
+// Live-verified fields: feedback_id, user, product, rating, comment, created_at, updated_at.
+// The backend does not return a review status or purchase-verification flag.
 import { apiFetch, isMockMode } from "@/lib/api";
 import { authApiFetch } from "@/lib/auth";
 
@@ -110,8 +110,7 @@ export async function getReviews(): Promise<Review[]> {
   return extractItems(response).map(mapBackendFeedback);
 }
 
-// Reviews for one product. UNVERIFIED: the ?product= filter is assumed; results are
-// also filtered on the client so unrelated reviews never show on a product page.
+// Results are filtered on the client too, so unrelated reviews never show on a product page.
 export async function getProductReviews(productId: string | number): Promise<Review[]> {
   if (isMockMode()) {
     return [];

@@ -57,8 +57,7 @@ export function ImageLinkPreview({ url }: { url: string }) {
   );
 }
 
-// Images for one product: GET/POST /catalog/admin/images/ and PATCH/DELETE /catalog/admin/images/{id}/.
-// UNVERIFIED: the ?product= list filter; results are also filtered on the client.
+// The admin image list and ?product= filter are live-verified; image write methods remain unverified.
 export default function ProductImagesPanel({ productId }: { productId: number }) {
   const [images, setImages] = useState<BackendProductImage[]>([]);
   const [loading, setLoading] = useState(true);

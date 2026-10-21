@@ -35,7 +35,10 @@ export default async function HomePage() {
     ? onPromotion.slice(0, 4)
     : flagged(products.filter((p) => p.featured), products.slice(8, 12).length > 0 ? products.slice(8, 12) : products.slice(0, 4));
 
-  const averageRating = reviews.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null;
+  const ratedReviews = reviews.filter((review) => review.rating !== null);
+  const averageRating = ratedReviews.length
+    ? (ratedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / ratedReviews.length).toFixed(1)
+    : null;
 
   return (
     <div className="bg-surface">

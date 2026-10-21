@@ -9,14 +9,23 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 
 export default function WishlistGrid() {
-  const { ids, moveToCart } = useWishlist();
+  const {
+    ids,
+    loading: wishlistLoading,
+    error: wishlistError,
+    reload: reloadWishlist,
+    moveToCart,
+  } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [moveError, setMoveError] = useState("");
+  const [reloadProducts, setReloadProducts] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     getProductsByIds(ids)
       .then((list) => {
         if (!cancelled) setProducts(list);
@@ -30,7 +39,7 @@ export default function WishlistGrid() {
     return () => {
       cancelled = true;
     };
-  }, [ids]);
+  }, [ids, reloadProducts]);
 
   // POST /wishlist/items/{product_id}/move-to-cart/ when signed in.
   async function handleMoveToCart(product: Product) {
@@ -42,12 +51,28 @@ export default function WishlistGrid() {
     }
   }
 
-  if (loading) {
+  if (wishlistLoading || loading) {
     return <p className="rounded-2xl border border-line bg-white p-6 text-muted">Loading your wishlist...</p>;
   }
 
+  if (wishlistError) {
+    return (
+      <EmptyState
+        title="Something went wrong"
+        description={wishlistError}
+        action={<Button variant="secondary" onClick={reloadWishlist}>Retry</Button>}
+      />
+    );
+  }
+
   if (error) {
-    return <EmptyState title="Something went wrong" description={error} />;
+    return (
+      <EmptyState
+        title="Something went wrong"
+        description={error}
+        action={<Button variant="secondary" onClick={() => setReloadProducts((attempt) => attempt + 1)}>Retry</Button>}
+      />
+    );
   }
 
   if (products.length === 0) {
