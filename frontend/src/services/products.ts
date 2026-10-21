@@ -162,9 +162,9 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
   return rows.map(mapBackendProductToProduct);
 }
 
-export async function getProduct(slug: string): Promise<Product | undefined> {
+export async function getProduct(productIdOrSlug: string): Promise<Product | undefined> {
   if (isMockMode()) {
-    return getProductSync(slug);
+    return getProductSync(productIdOrSlug);
   }
 
   // Backend uses integer product_id in the URL path.
@@ -172,7 +172,7 @@ export async function getProduct(slug: string): Promise<Product | undefined> {
   const id = Number.isFinite(numericId) ? numericId : productIdOrSlug;
 
   try {
-    const response = unwrap(await apiFetch<BackendProduct | { data?: BackendProduct }>(`/catalog/products/${slug}/`));
+    const response = unwrap(await apiFetch<BackendProduct | { data?: BackendProduct }>(`/catalog/products/${encodeURIComponent(String(id))}/`));
     if (!response) return undefined;
     return mapBackendProductToProduct(response);
   } catch (error) {

@@ -64,6 +64,16 @@ function mapBackendDelivery(item: BackendDelivery | BackendDeliveryTracking): De
   return mapBackendDeliveryTracking(item as BackendDeliveryTracking);
 }
 
+function mapBackendDeliveryMethod(item: { delivery_method: string; delivery_method_display: string; shipping_fee: string }): DeliveryMethod {
+  return {
+    id: item.delivery_method,
+    name: item.delivery_method,
+    displayName: item.delivery_method_display || item.delivery_method,
+    fee: Number(item.shipping_fee) || 0,
+    estimatedDays: 0,
+  };
+}
+
 // Public tracking: returns null when the tracking number is unknown (404).
 export async function trackDelivery(trackingNumber: string): Promise<DeliveryTracking | null> {
   if (isMockMode()) {
