@@ -1,6 +1,6 @@
 # Integration TODO
 
-Backend: https://bobtronics-store-backend.onrender.com/api/v1
+Backend: https://bobtronics-store-backend-zdan.onrender.com/api/v1
 API base: NEXT_PUBLIC_API_URL ends with /api/v1. All paths end with a trailing slash.
 Status key: VERIFIED = tested against real backend; UNVERIFIED = built from docs only; BROKEN = tested, wrong status/body.
 

@@ -3,6 +3,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import { getItServices } from "@/services/account";
 
 export const metadata = { title: "Request IT Service · BOB TRONICS" };
+export const dynamic = "force-dynamic";
 
 export default async function ItServiceRequestPage({ searchParams }: { searchParams: Promise<{ service?: string }> }) {
   const [services, params] = await Promise.all([getItServices(), searchParams]);

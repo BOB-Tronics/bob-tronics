@@ -13,6 +13,7 @@ import Card from "@/components/ui/Card";
 import { getItServices } from "@/services/account";
 
 export const metadata = { title: "IT Services · BOB TRONICS" };
+export const dynamic = "force-dynamic";
 
 const extraServices = [
   {
