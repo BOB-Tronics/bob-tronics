@@ -1,6 +1,7 @@
 // Delivery endpoints: public tracking by tracking number, and per-order delivery (login required).
 // UNVERIFIED: built from docs; /deliveries/track/{tracking_number}/ was only tested with an
 // unknown number (404 with the standard error envelope).
+import { useState } from "react";
 import { apiFetch, ApiError, isMockMode } from "@/lib/api";
 import { authApiFetch } from "@/lib/auth";
 import type { BackendDelivery, BackendDeliveryTracking } from "@/types";
