@@ -213,6 +213,30 @@ export async function login(email: string, password: string) {
   return { ...response, user };
 }
 
+// UNVERIFIED: Google login is assumed to return the same token/user envelope as /auth/login/.
+export async function loginWithGoogle(credential: string) {
+  try {
+    const response = await apiFetch<LoginResponseCompat>("/auth/google/", {
+      method: "POST",
+      body: JSON.stringify({ credential }),
+    });
+    const access = response?.tokens?.access ?? response?.data?.access ?? response?.access;
+    const refresh = response?.tokens?.refresh ?? response?.data?.refresh ?? response?.refresh;
+    if (!access || !refresh) {
+      throw new ApiError("Google sign-in response did not include session tokens.", 502, response);
+    }
+
+    setTokens({ access, refresh });
+    const user = response?.user ?? response?.data?.user ?? await getMe();
+    if (!user) throw new ApiError("Unable to load user profile", 502);
+    storeUser(user);
+    return user;
+  } catch (error: unknown) {
+    logApiFailure("/auth/google/", error);
+    throw error;
+  }
+}
+
 export async function register(data: RegisterInput) {
   if (isMockMode()) {
     return mockRegister(data);

@@ -284,7 +284,7 @@ This snapshot supersedes older UNVERIFIED entries below where the same endpoint 
 ### Additional read-only checks of documented missing routes (2026-10-19)
 - GET /reports/summary/?period=30d, GET /reports/export/?type=sales&format=csv, GET /payments/admin/, GET /notifications/admin/, GET /settings/admin/, GET /reviews/admin/1/, GET /customers/addresses/, GET /customers/payment-methods/, GET /support/tickets/, GET /notifications/, and GET /newsletter/subscribe/ all returned 404. The observed response is HTML: `<h1>Not Found</h1><p>The requested resource was not found on this server.</p>`.
 - OPTIONS /payments/initiate/, OPTIONS /reviews/admin/1/, OPTIONS /cart/apply-promo/, and OPTIONS /cart/promo/ returned 404 with the same Not Found page. These routes are absent.
-- POST /auth/google/ with an empty body returned 400, field `credential`; OPTIONS returned 200 with POST, OPTIONS. The backend route exists, but Google sign-in is not connected in the UI and a valid Google credential flow remains unverified.
+- POST /auth/google/ accepts required `credential` (empty-body probe returned 400; OPTIONS allows POST). Google Identity Services is connected in `src/components/auth/AuthExperience.tsx`; `src/lib/auth.ts` sends the credential and handles the same token/user envelopes as `/auth/login/`. UNVERIFIED: successful Google response shape is assumed to match login, and no real Google credential flow has been tested. Confirm a successful sign-in and adjust parsing if the backend response differs.
 
 
 ### Operations demo data correction
