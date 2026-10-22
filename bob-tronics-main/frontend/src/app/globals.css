@@ -1,0 +1,228 @@
+@import "tailwindcss";
+
+/* Design tokens taken from the BOB TRONICS Figma file */
+@theme {
+  --color-navy: #090d28;
+  --color-hero: #03194a;
+  --color-primary: #060a8a;
+  --color-primary-dark: #04066b;
+  --color-surface: #B4C3F859;
+  --color-accent: #efeefe;
+  --color-accent-strong: #e2e1fb;
+  --color-success: #0c7853;
+  --color-success-bg: #e9f6ef;
+  --color-warning: #8a5a0b;
+  --color-warning-bg: #fdf3e2;
+  --color-star: #b8860b;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e4e8f0;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --color-ops-gradient: linear-gradient(135deg, #e0e5fa 0%, #edf0ff 45%, #dfe5fa 100%);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-navy: #080d22;
+  --color-hero: #080d22;
+  --color-primary: #8d9bff;
+  --color-primary-dark: #7282f5;
+  --color-surface: rgba(17, 25, 57, 0.96);
+  --color-accent: #1b254b;
+  --color-accent-strong: #26335d;
+  --color-success: #58c69a;
+  --color-success-bg: #123a33;
+  --color-warning: #f0bd69;
+  --color-warning-bg: #3b3020;
+  --color-ink: #edf1ff;
+  --color-muted: #a5b1cf;
+  --color-line: #2b365b;
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --color-ops-gradient: linear-gradient(135deg, #0f172a 0%, #111a38 40%, #0b1126 100%);
+}
+
+/* Shared page container used by every section */
+/* The Figma frame is 1280px wide with 40px side margins, so content fills ~94% of the
+   width. Keep that ratio on larger screens instead of a narrow 1200px column. */
+@utility page-container {
+  width: 100%;
+  max-width: 1520px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 640px) {
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* The Figma background (1280 x 3466) spans the full page width and scrolls with it,
+   so every section sits on the diagonal bands rather than on the flat top strip. */
+body {
+  background-image: url("/images/background.png");
+}
+
+:root[data-theme="dark"] body {
+  background-image: linear-gradient(rgba(8, 13, 34, 0.9), rgba(8, 13, 34, 0.9)), url("/images/background.png");
+  background-position: center top;
+  background-repeat: no-repeat, repeat-y;
+  background-size: 100% 100%, 100% auto;
+  color: var(--color-ink);
+}
+
+:root[data-theme="dark"] main {
+  background-color: var(--color-surface);
+}
+
+:root[data-theme="dark"] footer {
+  margin-top: 0;
+}
+
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .bg-slate-50,
+:root[data-theme="dark"] .bg-gray-50 {
+  background-color: #111a38;
+}
+
+:root[data-theme="dark"] .bg-slate-100,
+:root[data-theme="dark"] .bg-gray-100 {
+  background-color: #192347;
+}
+
+:root[data-theme="dark"] .text-slate-900,
+:root[data-theme="dark"] .text-slate-800,
+:root[data-theme="dark"] .text-slate-700,
+:root[data-theme="dark"] .text-gray-900,
+:root[data-theme="dark"] .text-gray-800,
+:root[data-theme="dark"] .text-gray-700 {
+  color: var(--color-ink);
+}
+
+:root[data-theme="dark"] .text-slate-600,
+:root[data-theme="dark"] .text-slate-500,
+:root[data-theme="dark"] .text-slate-400,
+:root[data-theme="dark"] .text-gray-600,
+:root[data-theme="dark"] .text-gray-500,
+:root[data-theme="dark"] .text-gray-400 {
+  color: var(--color-muted);
+}
+
+:root[data-theme="dark"] .text-indigo-900 {
+  color: #c2cbff;
+}
+
+:root[data-theme="dark"] .border-slate-100,
+:root[data-theme="dark"] .border-slate-200,
+:root[data-theme="dark"] .border-slate-300,
+:root[data-theme="dark"] .border-white\/70 {
+  border-color: var(--color-line);
+}
+
+/* Operations workspace + admin pages: dark-mode counterparts of the
+   hardcoded light colors used by /operations/* pages and /dashboard. */
+:root[data-theme="dark"] .text-indigo-800 {
+  color: #9aa5ff;
+}
+:root[data-theme="dark"] .bg-emerald-50 {
+  background-color: var(--color-success-bg);
+}
+:root[data-theme="dark"] .border-emerald-100 {
+  border-color: var(--color-success-bg);
+}
+:root[data-theme="dark"] .text-emerald-700 {
+  color: var(--color-success);
+}
+:root[data-theme="dark"] .text-amber-700,
+:root[data-theme="dark"] .text-amber-800 {
+  color: var(--color-warning);
+}
+:root[data-theme="dark"] .bg-amber-100 {
+  background-color: var(--color-warning-bg);
+}
+:root[data-theme="dark"] .text-rose-700 {
+  color: #fca5a5;
+}
+:root[data-theme="dark"] .bg-rose-50 {
+  background-color: #2e1a1e;
+}
+:root[data-theme="dark"] .bg-\[\#e9edff\] {
+  background-color: #080d22;
+}
+:root[data-theme="dark"] .bg-\[\#080e29\] {
+  background-color: #040816;
+}
+:root[data-theme="dark"] .bg-\[\#1013a6\] {
+  background-color: #25306b;
+}
+:root[data-theme="dark"] .bg-\[\#efefff\] {
+  background-color: var(--color-accent-strong);
+}
+:root[data-theme="dark"] .text-\[\#10139a\] {
+  color: #9aa5ff;
+}
+:root[data-theme="dark"] .border-\[\#10139a\] {
+  border-color: #25306b;
+}
+:root[data-theme="dark"] .text-\[\#080D28\] {
+  color: var(--color-primary);
+}
+:root[data-theme="dark"] .text-\[\#4f5872\] {
+  color: var(--color-muted);
+}
+:root[data-theme="dark"] .bg-\[\#e5e5e5\] {
+  background-color: #111827;
+}
+
+/* Contact page static map: darken the illustrative SVG fills */
+:root[data-theme="dark"] .demo-map rect[fill="#e7e7e7"] {
+  fill: #111827;
+}
+:root[data-theme="dark"] .demo-map path[fill="#83abc3"] {
+  fill: #374151;
+}
+:root[data-theme="dark"] .demo-map g[fill="#c4e6d5"] {
+  fill: #4b5563;
+}
+:root[data-theme="dark"] .demo-map path[stroke="#d0d0d0"] {
+  stroke: #374151;
+}
+:root[data-theme="dark"] .demo-map circle[fill="#080b91"] {
+  fill: #9aa5ff;
+}
+:root[data-theme="dark"] .demo-map circle[fill="white"] {
+  fill: #c7c2ff;
+}
+
+/* Hide scrollbars on horizontal chip rows while keeping them scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.auth-background {
+  background-image: url("/images/background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+:root[data-theme="dark"] .auth-background {
+  background-image: linear-gradient(rgba(8, 13, 34, 0.9), rgba(8, 13, 34, 0.9)), url("/images/background.png");
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.auth-welcome-panel {
+  background: linear-gradient(135deg, #080542, #130d66, #080542);
+}

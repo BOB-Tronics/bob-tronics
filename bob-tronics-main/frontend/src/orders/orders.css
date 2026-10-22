@@ -488,3 +488,141 @@
     line-height: 1.55;
   }
 }
+
+/* ---------- Dark mode (data-theme="dark") ---------- */
+:root[data-theme="dark"] .orders-page {
+  --page-bg: #0b1126;
+  --line: #1f2a47;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  background: #080d22;
+  color: #edf1ff;
+}
+:root[data-theme="dark"] .breadcrumb {
+  color: #c7c2ff;
+}
+:root[data-theme="dark"] .page-title {
+  color: #edf1ff;
+}
+:root[data-theme="dark"] .page-subtitle {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .account-sidebar,
+:root[data-theme="dark"] .detail-card {
+  border-color: #2b365b;
+  background: #111a38;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .profile-avatar {
+  background: #1f2a47;
+}
+:root[data-theme="dark"] .account-profile h2 {
+  color: #edf1ff;
+}
+:root[data-theme="dark"] .account-profile span {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .account-nav a {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .account-nav a:hover,
+:root[data-theme="dark"] .account-nav a.is-active {
+  background: #1e2a4d;
+  color: #9aa5ff;
+}
+:root[data-theme="dark"] .order-pill-packed {
+  background: #26335d;
+  color: #9aa5ff;
+}
+:root[data-theme="dark"] .order-pill-paid {
+  background: #123a33;
+  color: #58c69a;
+}
+:root[data-theme="dark"] .detail-card h2 {
+  color: #edf1ff;
+}
+:root[data-theme="dark"] .tracking-intro,
+:root[data-theme="dark"] .tracking-intro span {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .tracking-step:not(:last-child)::after {
+  background: #2b365b;
+}
+:root[data-theme="dark"] .tracking-marker {
+  border-color: #374151;
+  background: #1f2a47;
+}
+:root[data-theme="dark"] .is-complete .tracking-marker,
+:root[data-theme="dark"] .is-current .tracking-marker {
+  border-color: #8d9bff;
+  background: #8d9bff;
+}
+:root[data-theme="dark"] .is-current .tracking-marker {
+  box-shadow: inset 0 0 0 6px #8d9bff, inset 0 0 0 8px #edf1ff;
+}
+:root[data-theme="dark"] .tracking-copy h3 {
+  color: #c7c2ff;
+}
+:root[data-theme="dark"] .tracking-copy p {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .is-upcoming .tracking-copy h3 {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .ordered-product-copy h3 {
+  color: #c7c2ff;
+}
+:root[data-theme="dark"] .ordered-product-copy p {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .ordered-product-copy strong {
+  color: #c7c2ff;
+}
+:root[data-theme="dark"] .laptop-thumbnail {
+  border-color: #374151;
+  background: #111a38;
+}
+:root[data-theme="dark"] .laptop-screen {
+  border-color: #374151;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #374151);
+  box-shadow: 0 2px 3px rgba(15, 23, 42, 0.6);
+}
+:root[data-theme="dark"] .laptop-base {
+  background: linear-gradient(90deg, #374151, #4b5563 52%, #6b7280);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="dark"] .price-breakdown > div {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .price-breakdown dd {
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .price-breakdown .discount-row,
+:root[data-theme="dark"] .price-breakdown .discount-row dd {
+  color: #58c69a;
+}
+:root[data-theme="dark"] .price-breakdown .price-total,
+:root[data-theme="dark"] .price-breakdown .price-total dd {
+  color: #edf1ff;
+}
+:root[data-theme="dark"] .tax-note {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .delivery-details strong,
+:root[data-theme="dark"] .delivery-details p {
+  color: #c7c2ff;
+}
+:root[data-theme="dark"] .delivery-details span {
+  color: #a5b1cf;
+}
+:root[data-theme="dark"] .order-actions button,
+:root[data-theme="dark"] .order-actions a {
+  border-color: #2b365b;
+  background: #111a38;
+  color: #9aa5ff;
+}
+:root[data-theme="dark"] .order-actions button:hover,
+:root[data-theme="dark"] .order-actions a:hover {
+  border-color: #3a4a7a;
+  background: #1e2a4d;
+}

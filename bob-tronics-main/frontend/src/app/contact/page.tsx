@@ -12,7 +12,7 @@ const questions = [
 ];
 
 function DemoMap() {
-  return <div className="relative h-72 overflow-hidden rounded-xl bg-[#e5e5e5] sm:h-80" aria-label="Illustrative Kigali map">
+  return <div className="demo-map relative h-72 overflow-hidden rounded-xl bg-[#e5e5e5] sm:h-80" aria-label="Illustrative Kigali map">
     <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1000 360" preserveAspectRatio="none" role="img" aria-label="Static map illustration">
       <rect width="1000" height="360" fill="#e7e7e7" />
       <path d="M0 336 160 315 295 330 430 295 570 310 710 270 830 278 1000 240v120H0Z" fill="#83abc3" />
