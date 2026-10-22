@@ -286,18 +286,63 @@ export async function activateFromEmailLink(uid: string, token: string) {
   return apiFetch<MessageResponse>(`/accounts/activate/?${query.toString()}`, { method: "GET" });
 }
 
-export async function passwordReset(data: PasswordResetInput) {
-  return apiFetch<MessageResponse>("/accounts/password-reset/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+type PasswordResetResponse = MessageResponse | {
+  success?: boolean;
+  data?: MessageResponse | null;
+} | null;
+
+function unwrapPasswordResetResponse(response: PasswordResetResponse): MessageResponse | null {
+  if (!response) return null;
+  if ("data" in response) {
+    const message = response.data && typeof response.data === "object" ? response.data.message : undefined;
+    return typeof message === "string" ? { message } : null;
+  }
+  return "message" in response && typeof response.message === "string"
+    ? { message: response.message }
+    : null;
 }
 
-export async function passwordResetConfirm(data: PasswordResetConfirmInput) {
-  return apiFetch<MessageResponse>("/accounts/password-reset/confirm/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+async function sendPasswordResetRequest(
+  endpoint: string,
+  body: PasswordResetInput | PasswordResetConfirmInput
+): Promise<MessageResponse | null> {
+  // UNVERIFIED: successful delivery and password change require a real email link.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+    try {
+      const response = await apiFetch<PasswordResetResponse>(endpoint, {
+        method: "POST",
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      return unwrapPasswordResetResponse(response);
+    } catch (error) {
+      const missingApiUrl = error instanceof Error && error.message === "NEXT_PUBLIC_API_URL is not set";
+      const shouldRetry = !missingApiUrl && (!(error instanceof ApiError) || error.status >= 500);
+      if (!shouldRetry || attempt === 1) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return null;
+}
+
+export function requestPasswordReset(email: string) {
+  return sendPasswordResetRequest("/accounts/password-reset/", { email });
+}
+
+export function confirmPasswordReset(data: PasswordResetConfirmInput) {
+  return sendPasswordResetRequest("/accounts/password-reset/confirm/", data);
+}
+
+// Keep the existing auth service names available for any callers outside these screens.
+export function passwordReset(data: PasswordResetInput) {
+  return requestPasswordReset(data.email);
+}
+
+export function passwordResetConfirm(data: PasswordResetConfirmInput) {
+  return confirmPasswordReset(data);
 }
 
 let isRefreshing = false;

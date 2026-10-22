@@ -53,7 +53,13 @@ export default function Header() {
     };
   }, []);
 
-  if (pathname === "/sign-in" || pathname === "/sign-up") return null;
+  if (
+    pathname === "/sign-in" ||
+    pathname === "/sign-up" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/reset-password/")
+  ) return null;
 
   function closeMenus() {
     setMenuOpen(false);
