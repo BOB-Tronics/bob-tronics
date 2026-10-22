@@ -24,7 +24,7 @@ type GoogleIdentityApi = {
         parent: HTMLElement,
         options: {
           theme: "outline";
-          size: "large";
+          size: "medium";
           shape: "pill";
           text: "signin_with";
           width: number;
@@ -96,7 +96,7 @@ export default function AuthExperience({ initialMode }: { initialMode: AuthMode 
     });
     window.google.accounts.id.renderButton(container, {
       theme: "outline",
-      size: "large",
+      size: "medium",
       shape: "pill",
       text: "signin_with",
       width: Math.max(200, Math.floor(container.getBoundingClientRect().width)),
