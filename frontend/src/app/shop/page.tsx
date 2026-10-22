@@ -55,25 +55,26 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
       </form>
 
       <Card className="mb-8">
-        <h2 className="text-xl font-bold text-ink">Shop by category</h2>
-        <div className="mt-5 grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {categories.map((cat) => (
-            <div key={cat.slug}>
-              <Link href={`/shop?category=${cat.slug}`} className="text-lg font-bold text-primary hover:underline">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-4 py-3 text-xl font-semibold text-ink hover:bg-accent">
+            Shop by category
+            <span aria-hidden="true" className="text-primary transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <nav aria-label="Shop by category" className="mt-2 border-l border-line pl-3">
+            {categories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/shop?category=${cat.slug}`}
+                aria-current={category === cat.slug ? "page" : undefined}
+                className={`mb-1 block rounded-lg px-4 py-3 text-base font-medium transition-colors ${
+                  category === cat.slug ? "bg-accent text-primary" : "text-ink hover:bg-accent hover:text-primary"
+                }`}
+              >
                 {cat.name}
               </Link>
-              <ul className="mt-2 space-y-1.5">
-                {cat.subcategories.map((sub) => (
-                  <li key={sub}>
-                    <Link href={`/shop?category=${cat.slug}`} className="text-sm text-muted hover:text-ink">
-                      {sub}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+            ))}
+          </nav>
+        </details>
         {highlighted && (
           <Link
             href={`/shop/${highlighted.slug}`}

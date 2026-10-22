@@ -17,6 +17,7 @@ const navigation = [
   ["▤", "Payments", "/operations/payments"],
   ["▱", "Deliveries", "/operations/deliveries"],
   ["⚒", "IT Requests", "/operations/it-requests"],
+  ["✉", "Contact", "/operations/contact"],
   ["☆", "Reviews", "/operations/reviews"],
   ["♧", "Notifications", "/operations/notifications"],
   ["⌁", "Reports", "/operations/reports"],

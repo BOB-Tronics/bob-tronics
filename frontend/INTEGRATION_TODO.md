@@ -35,7 +35,7 @@ This snapshot is authoritative and supersedes earlier dated UNVERIFIED/BROKEN no
 ### UNVERIFIED / SAFETY-SKIPPED
 - `DELETE /cart/clear/` and `POST /cart/clear/` were skipped: the customer account is not confirmed dedicated to testing. This run individually removed the item it added; checkout consumed its own cart line.
 - Successful `PATCH /accounts/me/` and successful `POST /accounts/change-password/` are unverified; no real account values/password were changed.
-- Account activation, password-reset flows, and successful Google sign-in require email-link/reset tokens or a real third-party credential; they were not exercised.
+- Account activation, successful password-reset completion, and successful Google sign-in require email-link/reset tokens or a real third-party credential; successful flows were not exercised.
 - Product/category/image update methods other than the tested product PATCH, discount PUT/PATCH, and image mutations were not exercised because they would require modifying existing records or additional AI TEST records.
 - Active promotion item mapping remains unverified for populated public results. Review status and verified-purchase status are not returned; missing values display as `—` and no purchase-verification label is shown.
 - Delivery status values beyond the invalid-status validation, successful delivery status changes, and accepted courier assignment remain unverified.
@@ -336,3 +336,8 @@ This snapshot supersedes older UNVERIFIED entries below where the same endpoint 
 - Payments now reads payment fields from verified GET /orders/admin/all/ through adminListOrders; dedicated GET /payments/admin/ remains missing, so settlement details are unavailable.
 - Notifications, Reports, and Settings no longer show fabricated values or claim local changes are saved; their backend endpoints returned 404.
 - Operations Reviews displays the live GET /reviews/ list. Moderation remains unavailable because the API has no write methods.\n
+
+### Password reset endpoints
+- `POST /accounts/password-reset/` — `src/lib/auth.ts:requestPasswordReset(email)`, **UNVERIFIED** for successful delivery. Live probes confirmed the required `email` field; an empty body returned `error.details.email` with `This field is required.`, and a request for `ai-test-nonexistent@example.invalid` returned 200 with a neutral message. Check that an actual reset email arrives and confirm server-side rate limiting.
+- `POST /accounts/password-reset/confirm/` — `src/lib/auth.ts:confirmPasswordReset(data)`, **UNVERIFIED** for a successful password change. Live probes confirmed required fields `uid`, `token`, `new_password`, and `password_confirm`; an empty body reported each field, and a fake token returned 400 with `error.details.token: "This password reset link is invalid or expired."`. Check a real email token, successful password update, and token lifetime.
+- Assumptions to confirm: configure the email template to link to `/reset-password?uid=...&token=...` (the page also accepts `uidb64` and `/reset-password/{uid}/{token}`); the UI applies the existing sign-up minimum of eight characters, so confirm whether the backend enforces additional password rules.
