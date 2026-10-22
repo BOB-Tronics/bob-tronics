@@ -7,15 +7,17 @@ import Card from "@/components/ui/Card";
 import Input, { Select } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api";
 import { createService, type ServiceRequest } from "@/services/services";
+import { createContactMessage } from "@/services/contact";
 
 // Turns a failed POST /services/ into a short message for the form.
 function requestErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) {
     return "Please sign in to send a request. Your details will be kept on this page.";
   }
-  return error instanceof Error && error.message
-    ? error.message
-    : "We couldn't submit your request. Please try again.";
+  if (error instanceof ApiError && error.status === 400) {
+    return "Please check your contact details and message, then try again.";
+  }
+  return "We couldn't submit your request. Please try again.";
 }
 
 const inputClass = "w-full rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
@@ -59,16 +61,16 @@ export default function ServiceRequestForm({
     const fullName = String(data.get("name") ?? "").trim();
     const contactEmail = String(data.get("email") ?? "").trim();
     const contactPhone = String(data.get("phone") ?? "").trim();
-    const topic = String(data.get("service") ?? "").trim();
     const text = String(data.get("message") ?? "").trim();
     setStatus("saving");
     setSubmitError("");
     void (async () => {
       try {
-        await createService({
+        await createContactMessage({
           name: fullName,
-          description: `${topic ? `${topic}: ` : ""}${text}\nContact phone: ${contactPhone || "Not provided"}\nContact email: ${contactEmail}`,
-          service_type: "other",
+          email: contactEmail,
+          phone: contactPhone,
+          message: text,
         });
         setStatus("done");
       } catch (error) {
@@ -130,10 +132,10 @@ export default function ServiceRequestForm({
   return <Card>
     {contactMode && <h2 className="mb-5 text-xl font-bold text-ink">Send us a message</h2>}
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2"><Input label="Full name" name="name" required autoComplete="name" defaultValue={contactMode ? "David Shema" : undefined} /><Input label="Email" name="email" type="email" required autoComplete="email" defaultValue={contactMode ? "david.shema@example.com" : undefined} /></div>
-      <Input label="Phone number" name="phone" type="tel" autoComplete="tel" required={!contactMode} defaultValue={contactMode ? "+250 78 555 0184" : undefined} />
+      <div className="grid gap-5 sm:grid-cols-2"><Input label="Full name" name="name" required autoComplete="name" /><Input label="Email" name="email" type="email" required autoComplete="email" /></div>
+      <Input label="Phone number" name="phone" type="tel" autoComplete="tel" required={!contactMode} />
       {!contactMode && services && <Select label="Service" name="service" options={services.map((s) => ({ value: s, label: s }))} />}
-      <div><label htmlFor="message" className="mb-2 block text-sm font-semibold text-ink">{contactMode ? "Message *" : "How can we help?"}</label><textarea id="message" name="message" rows={contactMode ? 5 : 4} required defaultValue={contactMode ? "I’m looking for a laptop for design work. Can your team help me choose the right configuration?" : undefined} className="w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" /></div>
+      <div><label htmlFor="message" className="mb-2 block text-sm font-semibold text-ink">{contactMode ? "Message *" : "How can we help?"}</label><textarea id="message" name="message" rows={contactMode ? 5 : 4} required className="w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" /></div>
       {contactMode && <label className="flex items-center gap-2 text-sm text-ink"><input type="checkbox" required className="accent-primary" /> I agree to the <a href="/about" className="text-primary underline">Privacy Policy</a>.</label>}
       {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
       <Button type="submit" size="lg" loading={status === "saving"}>{submitLabel}</Button>{contactMode && <p className="text-xs text-muted">We aim to respond within one business day.</p>}

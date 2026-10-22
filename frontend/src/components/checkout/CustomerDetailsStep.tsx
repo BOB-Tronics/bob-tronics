@@ -53,6 +53,7 @@ export default function CustomerDetailsStep({
           onChange={(e) => update("fullName", e.target.value)}
           error={errors.fullName}
           autoComplete="name"
+          placeholder="John Doe"
         />
         <Input
           label="Email address"
@@ -63,6 +64,7 @@ export default function CustomerDetailsStep({
           onChange={(e) => update("email", e.target.value)}
           error={errors.email}
           autoComplete="email"
+          placeholder="johndoe@gmail.com"
         />
         <Input
           label="Phone number"

@@ -122,7 +122,7 @@ export default function CartView({ products }: { products: Product[] }) {
               onChange={(e) => setPromoInput(e.target.value)}
               error={promoError}
               className="flex-1"
-              placeholder="Enter code"
+              placeholder="000"
             />
             {cart.promoCode && cart.promoCode === promoInput.toUpperCase() ? (
               <Button type="button" variant="secondary" size="lg" onClick={cart.removePromo}>

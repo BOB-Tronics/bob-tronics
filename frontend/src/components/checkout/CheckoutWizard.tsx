@@ -31,8 +31,8 @@ export default function CheckoutWizard({
   const [orderError, setOrderError] = useState("");
 
   const [customer, setCustomer] = useState<CustomerDetails>({
-    fullName: `${user.firstName} ${user.lastName}`,
-    email: user.email,
+    fullName: "",
+    email: "",
     phone: user.phone,
     country: "Rwanda",
     createAccount: true,

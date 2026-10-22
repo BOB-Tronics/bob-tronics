@@ -77,7 +77,7 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
         </details>
         {highlighted && (
           <Link
-            href={`/shop/${highlighted.slug}`}
+            href={`/shop/${highlighted.id}`}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-primary"
           >
             {highlighted.discount ? "Deal" : "New"}: {highlighted.name} · Explore now <ArrowRightIcon size={16} />
